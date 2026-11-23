@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="{{ settings.seo_description }}">
+<meta name="theme-color" content="{{ layout.get('background', '#111512') }}">
+<meta name="color-scheme" content="dark light">
+<title>{{ settings.seo_title }}</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>:root{--accent:{{ layout.get('accent', '#c7a46b') }};--builder-radius:{{ layout.get('radius', 14) }}px;--builder-spacing:{{ layout.get('spacing', 105) }}px;--builder-bg:{{ layout.get('background', '#111512') }};--builder-easing:{{ layout.get('easing', 'ease') }}}body{font-family:{{ layout.get('font', 'Tahoma')|tojson }},Tahoma,Arial,sans-serif}.section{padding-top:var(--builder-spacing);padding-bottom:var(--builder-spacing)}.button,.contact-form,.work-photo,.service,.art-tag{border-radius:var(--builder-radius)}</style>
+</head>
+<body>
+<div class="top-progress" id="progress"></div>
+<header class="header">
+  <a class="logo" href="#home"><span class="logo-symbol">K</span><span><strong data-key="company">پیمانکاری کاظمی</strong><small data-key="slogan">سنگ‌کاری • نما • اجرای ساختمان</small></span></a>
+  <button class="nav-toggle" id="navToggle" aria-label="باز کردن منو">☰</button>
+  <nav id="nav"><a href="#home">خانه</a><a href="#services">خدمات</a><a href="#projects">نمونه‌کارها</a><a href="#about">درباره ما</a><a href="#contact">تماس با ما</a></nav>
+  <a class="header-call" data-phone-link href="tel:+93700000000">تماس و مشاوره <span>↙</span></a>
+</header>
+
+<main>
+<section class="hero" id="home">
+  <div class="hero-grid"></div><div class="hero-copy reveal">
+    <div class="eyebrow"><span></span> تخصص، دقت، ماندگاری</div>
+    <h1>سنگ را با هنر<br>و سازه را با <em>اعتماد</em> بسازید.</h1>
+    <p class="hero-lead" data-key="heroText">پیمانکاری کاظمی؛ همراه مطمئن شما در اجرای سنگ‌کاری، نمای ساختمان و پروژه‌های ساختمانی، از ایده تا تحویل نهایی.</p>
+    <div class="hero-buttons"><a class="button gold" href="#projects">مشاهده نمونه‌کارها <b>↙</b></a><a class="button outline" href="#contact">درخواست مشاوره</a></div>
+    <div class="hero-facts"><div><b data-key="experience">۱۰+</b><span>سال تجربه</span></div><i></i><div><b data-key="projectsCount">۷۰+</b><span>پروژه اجراشده</span></div><i></i><div><b>۱۰۰٪</b><span>تعهد به کیفیت</span></div></div>
+  </div>
+  <div class="hero-art reveal"><div class="art-glow"></div><div class="stone stone-back"></div><div class="stone stone-main"></div><div class="stone-cut"></div><div class="art-tag"><small>پیمانکاری کاظمی</small><strong>کیفیت در جزئیات است</strong></div><div class="art-index">KAZEMI / CONSTRUCTION</div></div>
+  <a class="scroll-down" href="#about">برای ادامه اسکرول کنید <span>↓</span></a>
+</section>
+
+<section class="intro section" id="about">
+  <div class="section-label reveal">۰۱ / درباره پیمانکاری کاظمی</div>
+  <div class="intro-layout"><h2 class="reveal">ساختن فقط اجرا نیست؛<br><em>تعهد به نتیجه است.</em></h2><div class="intro-copy reveal"><p data-key="aboutText">در پیمانکاری کاظمی، هر پروژه با شناخت نیاز کارفرما، انتخاب مصالح مناسب و برنامه‌ریزی دقیق آغاز می‌شود. هدف ما اجرای تمیز، اصولی و ماندگار است؛ از جزئیات سنگ‌کاری تا مدیریت مراحل ساختمان.</p><a class="inline-link" href="#contact">برای شروع همکاری با ما تماس بگیرید <span>↙</span></a></div></div>
+</section>
+
+<section class="services section" id="services">
+ <div class="section-head reveal"><div><div class="section-label">۰۲ / خدمات ما</div><h2>تخصص‌هایی برای <em>ساخت بهتر</em></h2></div><p>خدمات اجرایی با توجه به کیفیت مصالح، دقت نصب و نیاز واقعی هر پروژه.</p></div>
+ <div class="service-list">
+  <article class="service reveal"><span class="number">۰۱</span><span class="service-symbol">▧</span><div><h3>سنگ‌کاری داخلی</h3><p>اجرای سنگ کف و دیوار، راه‌پله، لابی و فضاهای داخلی با برش‌کاری و نصب دقیق.</p></div><a href="#contact">↙</a></article>
+  <article class="service reveal"><span class="number">۰۲</span><span class="service-symbol">▥</span><div><h3>نمای سنگ ساختمان</h3><p>اجرای نمای سنگی متناسب با طرح معماری، شرایط ساختمان و انتخاب متریال مناسب.</p></div><a href="#contact">↙</a></article>
+  <article class="service reveal"><span class="number">۰۳</span><span class="service-symbol">⌂</span><div><h3>پیمانکاری ساختمان</h3><p>هماهنگی و اجرای مراحل پروژه، نظارت بر روند کار و پیگیری جزئیات اجرایی.</p></div><a href="#contact">↙</a></article>
+  <article class="service reveal"><span class="number">۰۴</span><span class="service-symbol">✳</span><div><h3>بازسازی و نوسازی</h3><p>تغییر و بهسازی فضاهای قدیمی، اصلاح پوشش‌ها و اجرای دوباره جزئیات ساختمانی.</p></div><a href="#contact">↙</a></article>
+ </div>
+</section>
+
+<section class="work section" id="projects">
+ <div class="section-head reveal"><div><div class="section-label">۰۳ / پروژه‌ها</div><h2>نتیجه کار، <em>معرف ماست</em></h2></div><p>نمونه‌کارهای واقعی و جزئیات پروژه‌های اجراشده را مشاهده کنید.</p></div>
+ <label class="project-search-label" for="publicProjectSearch">جست‌وجوی نمونه‌کار</label><input id="publicProjectSearch" class="project-search" type="search" placeholder="عنوان یا دسته‌بندی پروژه..." aria-label="جست‌وجوی نمونه‌کار"><div class="work-grid" id="projectGrid">
+  <article class="work-card work-feature reveal"><div class="work-photo photo-a"><span>تصویر پروژه</span></div><div class="work-info"><div><small>نمای ساختمان</small><h3>اجرای نمای سنگی</h3></div><b>۰۱</b></div></article>
+  <article class="work-card reveal"><div class="work-photo photo-b"><span>تصویر پروژه</span></div><div class="work-info"><div><small>فضای داخلی</small><h3>سنگ‌کاری لابی</h3></div><b>۰۲</b></div></article>
+  <article class="work-card reveal"><div class="work-photo photo-c"><span>تصویر پروژه</span></div><div class="work-info"><div><small>راه‌پله</small><h3>اجرای سنگ پله</h3></div><b>۰۳</b></div></article>
+ </div>
+</section>
+
+<section class="statement" id="statement"><div class="quote-mark">“</div><p class="reveal" data-key="quote">اعتماد با حرف ساخته نمی‌شود؛<br>با کیفیت کار، ماندگار می‌شود.</p><small>پیمانکاری کاظمی</small></section>
+
+<section class="contact section" id="contact">
+ <div class="contact-info reveal"><div class="section-label">۰۴ / تماس و مشاوره</div><h2>پروژه‌تان را<br><em>با ما شروع کنید.</em></h2><p>برای دریافت مشاوره، برآورد اولیه یا هماهنگی بازدید از پروژه با ما در تماس باشید.</p>
+  <div class="contact-lines"><a data-phone-link href="tel:+93700000000"><small>شماره تماس</small><b data-key="phone">+93 700 000 000</b></a><a data-whatsapp href="https://wa.me/93700000000" target="_blank" rel="noopener"><small>واتساپ</small><b>ارسال پیام در واتساپ ↙</b></a><div><small>موقعیت / آدرس</small><b data-key="address">آدرس محل فعالیت را وارد کنید</b></div></div>
+ </div>
+ <form class="contact-form reveal" id="contactForm"><h3>درخواست مشاوره</h3><label>نام و نام خانوادگی<input name="name" required placeholder="نام شما"></label><label>شماره تماس<input name="phone" required type="tel" placeholder="شماره‌ای که با آن تماس بگیریم"></label><label>موضوع پروژه<select name="service"><option>سنگ‌کاری داخلی</option><option>نمای سنگ ساختمان</option><option>پیمانکاری ساختمان</option><option>بازسازی و نوسازی</option><option>سایر</option></select></label><label>توضیحات پروژه<textarea name="message" rows="3" placeholder="نوع پروژه، محل و توضیحات کوتاه..."></textarea></label><button class="button gold" type="submit">ارسال درخواست <b>↙</b></button><p class="form-help" id="formHelp">با زدن دکمه، پیام در واتساپ شما آماده ارسال می‌شود.</p></form>
+</section>
+</main>
+<footer><a class="logo" href="#home"><span class="logo-symbol">K</span><span><strong>پیمانکاری کاظمی</strong><small>سنگ‌کاری • نما • اجرای ساختمان</small></span></a><span>© <span id="year"></span> پیمانکاری کاظمی</span><a href="#home">بازگشت به بالا ↑</a><a href="/admin/login" style="opacity:.55;font-size:12px">ورود مدیر</a></footer>
+<script>
+(()=>{const c={{ layout|tojson }};if(!c||!Object.keys(c).length)return;const root=document.documentElement;root.style.setProperty('--accent',c.accent||'#c7a46b');root.style.setProperty('--builder-radius',(c.radius??14)+'px');root.style.setProperty('--builder-font',c.font||'Tahoma');document.body.style.fontFamily='var(--builder-font),Tahoma,Arial,sans-serif';const ids={home:'home',about:'about',services:'services',projects:'projects',statement:'statement',contact:'contact'};const main=document.querySelector('main');(c.order||[]).forEach((key,i)=>{const el=document.getElementById(ids[key]);if(el&&main){el.style.order=i;main.style.display='flex';main.style.flexDirection='column'}});(c.hidden||[]).forEach(key=>{const el=document.getElementById(ids[key]);if(el)el.hidden=true});const style=document.createElement('style');style.textContent=`.reveal{transition:opacity var(--builder-duration,650ms) var(--builder-easing,ease),transform var(--builder-duration,650ms) var(--builder-easing,ease),filter var(--builder-duration,650ms) var(--builder-easing,ease)!important}.reveal[data-builder-transition=none]{opacity:1!important;transform:none!important}.reveal[data-builder-transition=fade]{opacity:0}.reveal[data-builder-transition=fade].visible{opacity:1}.reveal[data-builder-transition=fade-up]{opacity:0;transform:translateY(28px)}.reveal[data-builder-transition=fade-up].visible{opacity:1;transform:translateY(0)}.reveal[data-builder-transition=slide-left]{opacity:0;transform:translateX(-35px)}.reveal[data-builder-transition=slide-left].visible{opacity:1;transform:translateX(0)}.reveal[data-builder-transition=zoom]{opacity:0;transform:scale(.94)}.reveal[data-builder-transition=zoom].visible{opacity:1;transform:scale(1)}.reveal[data-builder-transition=slide-right]{opacity:0;transform:translateX(35px)}.reveal[data-builder-transition=slide-right].visible{opacity:1;transform:translateX(0)}.reveal[data-builder-transition=blur]{opacity:0;filter:blur(8px)}.reveal[data-builder-transition=blur].visible{opacity:1;filter:blur(0)}.reveal[data-builder-transition=flip]{opacity:0;transform:perspective(600px) rotateY(12deg)}.reveal[data-builder-transition=flip].visible{opacity:1;transform:none}`;document.head.appendChild(style);document.querySelectorAll('.reveal').forEach(el=>{el.dataset.builderTransition=c.transition||'fade-up';el.style.setProperty('--builder-duration',(c.duration||650)+'ms');el.style.setProperty('--builder-easing',c.easing||'ease');el.style.transitionDelay=(c.delay||0)+'ms'});})();
+</script><script src="/static/script.js"></script>
+</body></html>

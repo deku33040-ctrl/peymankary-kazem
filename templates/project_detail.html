@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ project.title }} | پیمانکاری کاظمی</title><meta name="description" content="{{ (project.description or project.title ~ '؛ نمونه‌کار پیمانکاری کاظمی')|striptags|truncate(155) }}">
+<meta property="og:title" content="{{ project.title }} | پیمانکاری کاظمی"><meta property="og:description" content="{{ project.description|striptags|truncate(180) }}">
+{% if project.image %}<meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ project.image }}">{% endif %}
+<link rel="stylesheet" href="/static/style.css">{% if settings.custom_font %}<style>@font-face{font-family:KazemiCustom;src:url("{{settings.custom_font}}");font-display:swap}body,button,input,textarea,select{font-family:KazemiCustom,Tahoma,Arial,sans-serif!important}</style>{% endif %}
+<style>.detail{max-width:1000px;margin:55px auto;padding:0 22px}.detail img{width:100%;max-height:580px;object-fit:cover;border-radius:16px}.detail h1{font-size:clamp(28px,5vw,48px)}.detail p{color:var(--muted);line-height:2.2}.detail .back{color:var(--gold)}.detail .cta{display:inline-block;margin-top:20px;padding:12px 20px;background:var(--gold);color:#171a15}</style></head>
+<body><header class="header"><a class="logo" href="/"><span class="logo-symbol">K</span><span><strong>{{ settings.company }}</strong><small>{{ settings.slogan }}</small></span></a><a class="header-call" href="/">بازگشت به سایت</a></header>
+<main class="detail"><a class="back" href="/#projects"> بازگشت به نمونه‌کارها</a><p>{{ project.category }}{% if project.is_favorite %} · نمونه‌کار محبوب{% endif %}</p><h1>{{ project.title }}</h1>{% if project.image %}<img src="{{ project.image }}" alt="{{ project.title }} - {{ project.category }}" loading="eager">{% endif %}<p>{{ project.description }}</p><a class="cta" href="/#contact">درخواست مشاوره برای پروژه مشابه</a></main>
+<footer><span>© پیمانکاری کاظمی</span><a href="/">صفحه اصلی</a></footer></body></html>
