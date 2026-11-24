@@ -1,0 +1,1 @@
+<section class="section custom-block stats-block bg-{{ d.bg }}" id="block-{{ b.id }}"><div class="stats-grid">{% for line in d['items'].split('\n') if '|' in line %}{% set parts = line.split('|', 1) %}<div class="reveal"><b>{{ parts[0].strip() }}</b><span>{{ parts[1].strip() }}</span></div>{% endfor %}</div></section>

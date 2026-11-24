@@ -610,6 +610,18 @@ def upload_font():
     flash('فونت بارگذاری و برای سایت انتخاب شد.','success')
     return redirect(url_for('admin_dashboard')+'#settings')
 
+@app.post('/admin/contact')
+@admin_required
+def save_contact():
+    f = request.form
+    cleaned = H.clean_settings({k: f.get(k, '') for k in ('phone', 'whatsapp', 'telegram', 'country_code')})
+    cleaned['float_enabled'] = '1' if f.get('float_enabled') else '0'
+    with db() as con:
+        for key, value in cleaned.items():
+            con.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(key,str(value)))
+    flash('شماره‌ها و دکمه‌های تماس ذخیره شد.','success')
+    return redirect(url_for('admin_dashboard')+'#contact-buttons')
+
 @app.post('/admin/settings')
 @admin_required
 def save_settings():

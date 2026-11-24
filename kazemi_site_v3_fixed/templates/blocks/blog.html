@@ -1,0 +1,6 @@
+<section class="section blog-home" id="blog">
+ <div class="section-head"><div><div class="section-label">{{ d.label }}</div><h2>{{ d.title|rich }}</h2></div><p>{{ d.subtitle }}</p></div>
+ <div class="blog-grid">
+ {% for post in blog_posts %}<a class="blog-card reveal" href="/blog/{{ post.slug }}"><div class="blog-cover">{% if post.image %}<img src="{{ post.image }}" alt="{{ post.title }}" loading="lazy">{% else %}<div class="blog-placeholder">{{ settings.logo_letter or 'K' }}</div>{% endif %}</div><div class="blog-copy"><small>{{ post.created_at|fa_date }}</small><h3>{{ post.title }}</h3><p>{{ post.excerpt or post.title }}</p><span>ادامه مطلب</span></div></a>{% else %}<p class="muted">مقاله‌های جدید به‌زودی منتشر می‌شوند.</p>{% endfor %}
+ </div><p style="text-align:center;margin-top:28px"><a class="button outline" href="/blog">مشاهده همه مقاله‌ها</a></p>
+</section>

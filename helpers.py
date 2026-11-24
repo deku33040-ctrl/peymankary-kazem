@@ -78,7 +78,6 @@ def contact_links(s):
         n = normalize_number(m.group(1), cc) if m else ''
     else:
         n = normalize_number(wa_raw, cc) or phone
-    n = n or '989965470626'
     if n:
         out['whatsapp'] = 'whatsapp://send?phone=' + n
 

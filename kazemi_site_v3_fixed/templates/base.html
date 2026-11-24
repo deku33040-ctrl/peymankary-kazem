@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}{{ settings.seo_title }}{% endblock %}</title>
+<meta name="description" content="{% block description %}{{ settings.seo_description }}{% endblock %}">
+<meta name="theme-color" content="#111512">
+<meta property="og:type" content="website"><meta property="og:title" content="{{ self.title() }}"><meta property="og:description" content="{{ self.description() }}">
+{% block og_image %}{% endblock %}
+<link rel="canonical" href="{{ request.base_url }}">
+<link rel="stylesheet" href="/static/style.css">
+{% if settings.custom_font %}<style>@font-face{font-family:KazemiCustom;src:url("{{ settings.custom_font }}") format("{% if settings.custom_font.endswith('.woff2') %}woff2{% elif settings.custom_font.endswith('.woff') %}woff{% elif settings.custom_font.endswith('.otf') %}opentype{% else %}truetype{% endif %}");font-display:swap}</style>{% endif %}
+<style>
+:root{--gold:{{ layout.accent }};--radius:{{ layout.radius }}px}
+body,button,input,textarea,select{font-family:{% if settings.custom_font %}KazemiCustom,{% endif %}{{ layout.font }},Tahoma,Arial,sans-serif}
+.reveal{transition-duration:{{ layout.duration }}ms}
+{% if layout.transition == 'none' %}.reveal{opacity:1;transform:none}{% elif layout.transition == 'zoom' %}.reveal{transform:scale(.94)}.reveal.visible{transform:scale(1)}{% elif layout.transition == 'slide-left' %}.reveal{transform:translateX(-28px)}.reveal.visible{transform:none}{% elif layout.transition == 'blur' %}.reveal{filter:blur(8px)}.reveal.visible{filter:none}{% elif layout.transition == 'flip' %}.reveal{transform:perspective(700px) rotateY(12deg)}.reveal.visible{transform:none}{% elif layout.transition == 'fade' %}.reveal{transform:none}{% endif %}
+.work-card{border-radius:var(--radius);transition:transform .35s ease,box-shadow .35s ease}
+{% if layout.hover_effect == 'zoom' %}.work-card:hover{transform:scale(1.045);z-index:2;box-shadow:0 20px 45px #0003}{% elif layout.hover_effect == 'lift' %}.work-card:hover{transform:translateY(-10px);box-shadow:0 20px 45px #0003}{% elif layout.hover_effect == 'tilt' %}.work-card:hover{transform:rotate(-1.5deg) scale(1.025)}{% endif %}
+{% if layout.gallery_layout == 'masonry' %}.work-grid{display:block;columns:3;column-gap:22px}.work-grid .work-card{display:inline-block;width:100%;break-inside:avoid;margin:0 0 22px}@media(max-width:700px){.work-grid{columns:1}}{% elif layout.gallery_layout == 'slider' %}.work-grid{display:flex;overflow-x:auto;gap:22px;scroll-snap-type:x mandatory}.work-grid .work-card{min-width:min(340px,82vw);scroll-snap-align:start}{% endif %}
+{% if layout.title_style == 'underline' %}.section-head h2:after,.intro h2:after{content:'';display:block;width:70px;height:2px;background:var(--gold);margin-top:12px}{% elif layout.title_style == 'center' %}.section-head{text-align:center;justify-content:center;display:block}.section-head>p{margin:12px auto}{% endif %}
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+<div class="top-progress" id="progress"></div>
+<header class="header">
+  <a class="logo" href="/"><span class="logo-symbol">{{ settings.logo_letter or 'K' }}</span><span><strong>{{ settings.company }}</strong><small>{{ settings.slogan }}</small></span></a>
+  <button class="nav-toggle" id="navToggle" aria-label="باز کردن منو">☰</button>
+  <nav id="nav"><a href="/">خانه</a><a href="/#services">خدمات</a><a href="/#projects">نمونه‌کارها</a><a href="/blog">مجله</a><a href="/#about">درباره ما</a><a href="/#contact">تماس با ما</a>{% for pg in nav_pages %}<a href="{{ url_for('custom_page', slug=pg.slug) }}">{{ pg.title }}</a>{% endfor %}</nav>
+  {% if links.tel_href %}<a class="header-call" href="{{ links.tel_href }}">{{ settings.header_cta_text }}</a>{% endif %}
+</header>
+<main class="{% block main_class %}{% endblock %}">{% block content %}{% endblock %}</main>
+<footer>
+  <a class="logo" href="/"><span class="logo-symbol">{{ settings.logo_letter or 'K' }}</span><span><strong>{{ settings.company }}</strong><small>{{ settings.slogan }}</small></span></a>
+  <span>© {{ year }} {{ settings.company }}{% if settings.footer_text %} · {{ settings.footer_text }}{% endif %}</span>
+  <span class="footer-links">{% if links.telegram %}<a href="{{ links.telegram }}" target="_blank" rel="noopener">تلگرام</a>{% endif %}{% if links.whatsapp %}<a href="{{ links.whatsapp }}">واتساپ</a>{% endif %}{% if links.instagram %}<a href="{{ links.instagram }}" target="_blank" rel="noopener">اینستاگرام</a>{% endif %}</span>
+  {% if settings.maker_text %}<a href="{{ settings.maker_url or '#' }}" target="_blank" rel="noopener">{{ settings.maker_text }}</a>{% endif %}
+  <a href="/admin/login" style="opacity:.55;font-size:12px">ورود مدیر</a>
+</footer>
+{% if settings.float_enabled == '1' and (links.whatsapp or links.tel_href or links.telegram) %}
+<nav class="floating-contact" aria-label="راه‌های ارتباطی" dir="ltr">
+ {% if links.whatsapp %}<a class="floating-contact__link floating-contact__whatsapp" href="{{ links.whatsapp }}" aria-label="واتساپ" title="واتساپ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 3.5A11.8 11.8 0 0 0 2 17.7L.5 23.5l6-1.6A11.8 11.8 0 1 0 20.5 3.5ZM12 21a9.2 9.2 0 0 1-4.7-1.3l-.4-.2-3.5.9.9-3.4-.2-.4A9.2 9.2 0 1 1 12 21Zm5.1-6.9c-.3-.2-1.7-.9-2-.9s-.5-.2-.7.2-.8.9-1 1.1-.4.2-.7.1a7.5 7.5 0 0 1-2.2-1.4 8.2 8.2 0 0 1-1.5-1.9c-.2-.3 0-.5.1-.7l.5-.6.2-.5c.1-.2 0-.4 0-.6l-.9-2.1c-.2-.5-.5-.4-.7-.4h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.8 1.2 3.2 1.4 3.4a11 11 0 0 0 4.2 3.7c.6.3 1.1.5 1.5.6.6.2 1.2.2 1.6.1.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.1-1.4s-.2-.2-.5-.4Z"/></svg><span>واتساپ</span></a>{% endif %}
+ {% if links.tel_href %}<a class="floating-contact__link floating-contact__phone" href="{{ links.tel_href }}" aria-label="تماس تلفنی" title="تماس تلفنی"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2 11 11 0 0 0 3.4.5 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17.8 17.8 0 0 1 3 3a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11 11 0 0 0 .5 3.4 1 1 0 0 1-.2 1Z"/></svg><span>تماس</span></a>{% endif %}
+ {% if links.telegram %}<a class="floating-contact__link floating-contact__telegram" href="{{ links.telegram }}" target="_blank" rel="noopener noreferrer" aria-label="تلگرام" title="تلگرام"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21.8 3.2-3.3 17.1c-.2 1.2-.9 1.5-1.9.9l-5.2-3.8-2.5 2.4c-.3.3-.5.5-1 .5l.4-5.3 9.7-8.8c.4-.4-.1-.6-.6-.2L5.4 13.6.3 12c-1.1-.3-1.1-1.1.2-1.6L20.4 2.7c.9-.3 1.7.2 1.4.5Z"/></svg><span>تلگرام</span></a>{% endif %}
+</nav>{% endif %}
+<script src="/static/script.js"></script>
+</body></html>
