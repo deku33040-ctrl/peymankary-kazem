@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block title %}{{ project.title }} | {{ settings.company }}{% endblock %}
+{% block description %}{{ (project.description or project.title)|striptags|truncate(155) }}{% endblock %}
+{% block og_image %}{% if project.image %}<meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ project.image }}">{% endif %}{% endblock %}
+{% block main_class %}detail{% endblock %}
+{% block head %}<style>.detail{max-width:1000px;margin:55px auto;padding:0 22px}.detail img{width:100%;max-height:580px;object-fit:cover;border-radius:16px}.detail h1{font-size:clamp(28px,5vw,48px)}.detail p{color:var(--muted);line-height:2.2}.detail .back{color:var(--gold)}.detail .cta{display:inline-block;margin-top:20px;padding:12px 20px;background:var(--gold);color:#171a15}</style>{% endblock %}
+{% block content %}<a class="back" href="/#projects">بازگشت به نمونه‌کارها</a><p>{{ project.category }}{% if project.is_favorite %} · نمونه‌کار محبوب{% endif %}</p><h1>{{ project.title }}</h1>{% if project.image %}<img src="{{ project.image }}" alt="{{ project.title }} - {{ project.category }}">{% endif %}<p>{{ project.description|nl2br }}</p><a class="cta" href="/#contact">درخواست مشاوره برای پروژه مشابه</a>{% endblock %}

@@ -1,0 +1,4 @@
+{% extends 'base.html' %}
+{% block title %}{{ page.title }} | {{ settings.company }}{% endblock %}
+{% block description %}{{ page.meta_description or page.title }}{% endblock %}
+{% block content %}<article class="section intro"><div class="section-label">{{ page.title }}</div><h1>{{ page.title }}</h1><div class="custom-page-content" style="white-space:pre-line;max-width:900px">{{ page.content }}</div></article>{% endblock %}

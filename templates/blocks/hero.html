@@ -1,0 +1,11 @@
+<section class="hero" id="home">
+  <div class="hero-grid"></div><div class="hero-copy reveal">
+    <div class="eyebrow"><span></span> {{ d.eyebrow }}</div>
+    <h1>{{ d.title|rich }}</h1>
+    <p class="hero-lead">{{ settings.heroText }}</p>
+    <div class="hero-buttons">{% if d.btn1_text %}<a class="button gold" href="{{ d.btn1_link or '#' }}">{{ d.btn1_text }} <b></b></a>{% endif %}{% if d.btn2_text %}<a class="button outline" href="{{ d.btn2_link or '#' }}">{{ d.btn2_text }}</a>{% endif %}</div>
+    <div class="hero-facts"><div><b>{{ settings.experience }}</b><span>سال تجربه</span></div><i></i><div><b>{{ settings.projectsCount }}</b><span>پروژه اجراشده</span></div><i></i><div><b>۱۰۰٪</b><span>تعهد به کیفیت</span></div></div>
+  </div>
+  <div class="hero-art reveal"><div class="art-glow"></div><div class="stone stone-back"></div><div class="stone stone-main"></div><div class="stone-cut"></div><div class="art-tag"><small>{{ settings.company }}</small><strong>{{ d.art_slogan }}</strong></div><div class="art-index">{{ d.art_text }}</div></div>
+  <a class="scroll-down" href="#about">برای ادامه اسکرول کنید <span>↓</span></a>
+</section>

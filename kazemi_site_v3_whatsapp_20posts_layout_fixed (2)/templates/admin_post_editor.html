@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ 'ویرایش مقاله' if post else 'مقاله جدید' }} | پنل کاظمی</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f5f8;color:#202938;font-family:Tahoma,Arial;line-height:1.9}.bar{background:#172235;color:white;padding:15px 4%;display:flex;justify-content:space-between;align-items:center}.bar a{color:#f0c66d;text-decoration:none}.wrap{max-width:1050px;margin:28px auto;padding:0 16px}.card{background:white;border:1px solid #e1e5eb;border-radius:12px;padding:22px;margin-bottom:18px;box-shadow:0 5px 18px #1722350b}label{display:block;font-size:13px;font-weight:bold;margin:12px 0 5px}input,textarea{width:100%;border:1px solid #d5dce5;border-radius:7px;padding:11px;font:14px Tahoma}textarea{min-height:80px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.toolbar{display:flex;gap:6px;flex-wrap:wrap;background:#edf1f6;padding:9px;border:1px solid #d5dce5;border-bottom:0;border-radius:8px 8px 0 0}.toolbar button{border:1px solid #c8d0dc;background:white;border-radius:5px;padding:7px 11px;cursor:pointer}.editor{min-height:340px;border:1px solid #d5dce5;border-radius:0 0 8px 8px;padding:18px;outline:none;line-height:2.2}.editor:focus{border-color:#647eaa}.actions{display:flex;gap:10px;flex-wrap:wrap}.primary{background:#1d3557;color:white;border:0;border-radius:7px;padding:12px 22px;cursor:pointer;font-weight:bold}.secondary{background:#e9edf3;color:#243247;border-radius:7px;padding:12px 18px;text-decoration:none}.hint{font-size:12px;color:#657184}.check{display:flex;align-items:center;gap:8px}.check input{width:auto}.error{color:#a22}@media(max-width:650px){.grid{grid-template-columns:1fr}.bar{gap:12px;flex-wrap:wrap}}
+</style></head><body>
+<header class="bar"><strong>پنل مدیریت کاظمی / {{ 'ویرایش مقاله' if post else 'نوشته جدید' }}</strong><a href="/admin#blog">بازگشت به مقالات</a></header>
+<main class="wrap">
+{% with items=get_flashed_messages(with_categories=true) %}{% for cat,m in items %}<div class="card {{'error' if cat=='error' else ''}}">{{m}}</div>{% endfor %}{% endwith %}
+<form id="postForm" method="post" action="{{action}}" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{csrf_token}}">
+<div class="card"><div class="grid"><div><label>عنوان مقاله *</label><input name="title" id="postTitle" required maxlength="180" value="{{post.title if post else ''}}" placeholder="عنوان مقاله"></div><div><label>نشانی مقاله</label><input name="slug" value="{{post.slug if post else ''}}" placeholder="به‌صورت خودکار از عنوان ساخته می‌شود"></div></div>
+<label>خلاصه مقاله</label><textarea name="excerpt" maxlength="500">{{post.excerpt if post else ''}}</textarea>
+<label>متن مقاله *</label>
+<div class="toolbar">
+<button type="button" data-cmd="bold"><b>B</b></button><button type="button" data-cmd="italic"><i>I</i></button><button type="button" data-cmd="underline"><u>U</u></button>
+<button type="button" data-block="h2">تیتر ۲</button><button type="button" data-block="h3">تیتر ۳</button><button type="button" data-block="p">پاراگراف</button>
+<button type="button" data-cmd="insertUnorderedList">فهرست</button><button type="button" data-cmd="insertOrderedList">شماره‌گذاری</button><button type="button" id="linkBtn">درج لینک</button><button type="button" id="imageBtn">درج تصویر داخل متن</button><button type="button" data-cmd="removeFormat">پاک‌کردن قالب</button>
+</div>
+<div id="editor" class="editor" contenteditable="true" dir="rtl">{{post.content|safe if post else ''}}</div>
+<textarea name="content" id="contentField" hidden></textarea>
+<p class="hint">برای درج تصویر داخل متن از دکمه «درج تصویر» استفاده کن. عکس‌های درج‌شده در رسانه‌های سایت آپلود می‌شوند.</p>
+<div class="grid"><div><label>تصویر شاخص</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif"></div><div><label>توضیحات سئو</label><input name="meta_description" maxlength="300" value="{{post.meta_description if post else ''}}"></div></div>
+<label class="check"><input type="checkbox" name="is_published" {% if not post or post.is_published %}checked{% endif %}> انتشار عمومی مقاله</label>
+</div><div class="actions"><button class="primary" id="saveBtn" type="submit">{{'ذخیره ویرایش' if post else 'انتشار مقاله'}}</button><a class="secondary" href="/admin#blog">انصراف</a></div>
+</form></main>
+<script>
+const editor=document.getElementById('editor'), form=document.getElementById('postForm'), field=document.getElementById('contentField');
+document.querySelectorAll('[data-cmd]').forEach(b=>b.addEventListener('click',()=>{editor.focus();document.execCommand(b.dataset.cmd,false,null)}));
+document.querySelectorAll('[data-block]').forEach(b=>b.addEventListener('click',()=>{editor.focus();document.execCommand('formatBlock',false,b.dataset.block)}));
+document.getElementById('linkBtn').addEventListener('click',()=>{const u=prompt('نشانی لینک را وارد کن (https://...)');if(u&&/^https?:\/\//i.test(u)){editor.focus();document.execCommand('createLink',false,u)}});
+document.getElementById('imageBtn').addEventListener('click',()=>{const f=document.createElement('input');f.type='file';f.accept='image/png,image/jpeg,image/webp,image/gif';f.onchange=async()=>{if(!f.files[0])return;const fd=new FormData();fd.append('image',f.files[0]);fd.append('csrf_token',form.querySelector('[name=csrf_token]').value);try{const r=await fetch('/admin/blog/inline-image',{method:'POST',body:fd});const d=await r.json();if(!r.ok)throw Error(d.error||'آپلود تصویر ناموفق بود');editor.focus();document.execCommand('insertImage',false,d.url)}catch(e){alert(e.message)}};f.click()});
+form.addEventListener('submit',e=>{field.value=editor.innerHTML.trim();if(!editor.innerText.trim()){e.preventDefault();alert('متن مقاله را وارد کن.');return}document.getElementById('saveBtn').disabled=true;document.getElementById('saveBtn').textContent='در حال ذخیره...'});
+</script></body></html>

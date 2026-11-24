@@ -1,7 +1,153 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>صفحه‌ساز بصری | پیمانکاری کاظمی</title><style>
-:root{--bg:#111711;--panel:#1d251e;--line:#3b463b;--gold:#c7a46b;--txt:#f5f2e9;--muted:#b8c0b5}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px Tahoma,Arial;line-height:1.8}.top{position:sticky;top:0;background:#111711ed;border-bottom:1px solid var(--line);padding:14px 3%;display:flex;justify-content:space-between;align-items:center;z-index:5}.top a{color:var(--gold)}.wrap{max-width:1250px;margin:25px auto;padding:0 16px}.layout{display:grid;grid-template-columns:1fr 340px;gap:18px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}.panel h2{color:var(--gold);margin-top:0}button,.btn{background:var(--gold);color:#151711;border:0;padding:10px 16px;border-radius:8px;font-weight:bold;cursor:pointer;text-decoration:none}.muted{color:var(--muted);font-size:13px}label{display:block;margin:12px 0 5px;color:var(--muted)}input,select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:#101610;color:white}.sections{display:grid;gap:10px}.item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#141b15;border:1px solid var(--line);border-radius:10px;padding:12px;cursor:grab}.item.drag{opacity:.45}.item small{color:var(--muted)}.item label{margin:0;display:flex;align-items:center;gap:8px}.item input{width:auto}.preview{background:#f4f0e7;color:#26251f;border-radius:12px;overflow:hidden}.preview-head{background:#202820;color:white;padding:14px}.preview-section{padding:24px;border-bottom:1px solid #ddd}.preview-section:nth-child(even){background:#e9e4d9}.preview-section h3{margin:0 0 8px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.flash{background:#293b2c;padding:10px;border-radius:8px;margin-bottom:12px}.actions{display:flex;gap:8px;flex-wrap:wrap}@media(max-width:850px){.layout{grid-template-columns:1fr}.top{gap:10px;flex-wrap:wrap}}
-</style></head><body><header class="top"><b>صفحه‌ساز بصری پیمانکاری کاظمی</b><div class="actions"><a href="/admin">بازگشت به مدیریت</a><a href="/" target="_blank">مشاهده سایت</a></div></header><main class="wrap">{% with items=get_flashed_messages(with_categories=true) %}{% for cat,m in items %}<div class="flash">{{m}}</div>{% endfor %}{% endwith %}<div class="panel"><h2>طراحی سایت بدون کدنویسی</h2><p class="muted">بخش‌ها را با کشیدن مرتب کن، نمایش هر بخش و افکت‌ها را انتخاب کن و ذخیره را بزن. تغییرات روی صفحه اصلی اعمال می‌شود.</p></div><form method="post" id="builder"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><div class="layout"><section><div class="panel"><h2>۱. ترتیب بخش‌های صفحه</h2><p class="muted">هر ردیف را با ماوس بکش و جابه‌جا کن.</p><div class="sections" id="sections">{% set names=[('home','صفحه اصلی / معرفی'),('about','درباره ما'),('services','خدمات'),('projects','نمونه‌کارها'),('statement','جمله شاخص'),('contact','تماس با ما')] %}{% for key,label in names %}<div class="item" draggable="true" data-key="{{key}}"><span>⠿ {{label}}</span><label><input type="checkbox" name="hidden_sections" value="{{key}}" {% if key in layout.get('hidden',[]) %}checked{% endif %}> مخفی</label><input type="hidden" name="section_order" value="{{key}}"></div>{% endfor %}</div></div><div class="panel"><h2>۲. پیش‌نمایش ساختاری</h2><div class="preview"><div class="preview-head">پیمانکاری کاظمی — پیش‌نمایش ترتیب بخش‌ها</div><div id="previewSections">{% for key,label in names %}<div class="preview-section" data-preview="{{key}}"><h3>{{label}}</h3><small>محتوای واقعی سایت در این بخش نمایش داده می‌شود.</small></div>{% endfor %}</div></div></div></section><aside><div class="panel"><h2>۳. ظاهر و انیمیشن</h2><label>رنگ اصلی سایت</label><input type="color" name="accent" value="{{layout.get('accent','#c7a46b')}}"><label>فونت</label><select name="font"><option value="Tahoma" {% if layout.get('font','Tahoma')=='Tahoma' %}selected{% endif %}>Tahoma</option><option value="Arial" {% if layout.get('font')=='Arial' %}selected{% endif %}>Arial</option><option value="Vazirmatn" {% if layout.get('font')=='Vazirmatn' %}selected{% endif %}>Vazirmatn (در صورت نصب/بارگذاری)</option><option value="sans-serif">عمومی</option></select><label>گردی گوشه‌ها: <b id="radiusVal">{{layout.get('radius',14)}}</b> پیکسل</label><input type="range" name="radius" min="0" max="40" value="{{layout.get('radius',14)}}" oninput="radiusVal.textContent=this.value"><label>افکت ورود عناصر</label><select name="transition"><option value="none">بدون افکت</option><option value="fade" {% if layout.get('transition')=='fade' %}selected{% endif %}>محو شدن</option><option value="fade-up" {% if layout.get('transition','fade-up')=='fade-up' %}selected{% endif %}>محو شدن از پایین</option><option value="slide-left" {% if layout.get('transition')=='slide-left' %}selected{% endif %}>حرکت از چپ</option><option value="zoom" {% if layout.get('transition')=='zoom' %}selected{% endif %}>بزرگ‌نمایی</option></select><label>مدت افکت (میلی‌ثانیه)</label><input type="number" name="duration" min="100" max="2000" step="50" value="{{layout.get('duration',650)}}"><label>انیمیشن هنگام رفتن موس روی نمونه‌کار</label><select name="hover_effect"><option value="zoom" {% if layout.get('hover_effect','zoom')=='zoom' %}selected{% endif %}>بزرگ شدن</option><option value="lift" {% if layout.get('hover_effect')=='lift' %}selected{% endif %}>بالا آمدن</option><option value="tilt" {% if layout.get('hover_effect')=='tilt' %}selected{% endif %}>چرخش ظریف</option><option value="none" {% if layout.get('hover_effect')=='none' %}selected{% endif %}>بدون افکت</option></select>
-<label>چیدمان گالری</label><select name="gallery_layout"><option value="grid" {% if layout.get('gallery_layout','grid')=='grid' %}selected{% endif %}>شبکه‌ای</option><option value="masonry" {% if layout.get('gallery_layout')=='masonry' %}selected{% endif %}>آجری (Masonry)</option><option value="slider" {% if layout.get('gallery_layout')=='slider' %}selected{% endif %}>اسلایدر (آزمایشی)</option></select>
-<label>سبک عنوان بخش‌ها</label><select name="title_style"><option value="classic">معمولی</option><option value="underline" {% if layout.get('title_style')=='underline' %}selected{% endif %}>خط زیر عنوان</option><option value="center" {% if layout.get('title_style')=='center' %}selected{% endif %}>وسط‌چین</option></select><p class="muted">در این نسخه، ترتیب بخش‌ها، نمایش/مخفی‌سازی و تنظیمات پایه ظاهر ذخیره می‌شود. ویرایش آزاد متن و ویجت‌ها و تنظیم جداگانه موبایل در مرحله توسعه بعدی قابل اضافه شدن است.</p><button type="submit">ذخیره و اعمال تغییرات</button></div></aside></div></form></main><script>
-const list=document.getElementById('sections');let dragged=null;list.addEventListener('dragstart',e=>{dragged=e.target.closest('.item');if(dragged)dragged.classList.add('drag')});list.addEventListener('dragend',()=>{if(dragged)dragged.classList.remove('drag');dragged=null;syncPreview()});list.addEventListener('dragover',e=>{e.preventDefault();const target=e.target.closest('.item');if(!dragged||!target||target===dragged)return;const r=target.getBoundingClientRect();list.insertBefore(dragged,e.clientY>r.top+r.height/2?target.nextSibling:target)});function syncPreview(){const p=document.getElementById('previewSections');[...list.children].forEach((item,i)=>{const el=p.querySelector('[data-preview="'+item.dataset.key+'"]');if(el){p.appendChild(el);el.style.opacity=item.querySelector('input[type=checkbox]').checked?'.35':'1';el.style.textDecoration=item.querySelector('input[type=checkbox]').checked?'line-through':'none'}})}list.addEventListener('change',syncPreview);syncPreview();
+<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>صفحه‌ساز | پنل کاظمی</title>
+<style>
+:root{--bg:#101510;--panel:#1b211b;--line:#343b31;--gold:#c8a65b;--txt:#f4f1e8;--muted:#b9b9aa;--ok:#4f9d63;--bad:#a24a4a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:Tahoma,Arial,sans-serif;line-height:1.7;height:100vh;display:flex;flex-direction:column}
+button{font-family:inherit;cursor:pointer}.btn{background:var(--gold);color:#151711;border:0;padding:9px 16px;border-radius:7px;font-weight:bold;text-decoration:none;font-size:14px}.btn.ghost{background:none;color:var(--txt);border:1px solid var(--line)}.btn.small{padding:4px 9px;font-size:12px}
+.top{display:flex;gap:10px;align-items:center;padding:10px 18px;border-bottom:1px solid var(--line);background:#101510}.top h1{font-size:16px;margin:0;color:var(--gold);flex:1}.status{font-size:13px;color:var(--muted)}.status.dirty{color:#e0b85a}.status.ok{color:var(--ok)}.status.err{color:#e07a7a}
+.app{flex:1;display:grid;grid-template-columns:230px minmax(320px,1fr) 340px;min-height:0}
+.col{overflow:auto;padding:14px;min-height:0}.col+.col{border-right:1px solid var(--line)}
+h2{font-size:13px;color:var(--gold);margin:16px 0 8px}h2:first-child{margin-top:0}
+.pal{display:flex;align-items:center;gap:8px;width:100%;text-align:right;background:var(--panel);color:var(--txt);border:1px dashed var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:13px;cursor:grab}.pal:hover{border-color:var(--gold)}.pal.used{opacity:.4;cursor:not-allowed}.pal i{font-style:normal;width:22px;text-align:center;color:var(--gold)}
+.tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button{flex:1;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:7px 4px;font-size:13px}.tabs button.on{background:var(--gold);color:#151711;font-weight:bold}
+#list{min-height:120px}.blk{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;cursor:grab}.blk.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}.blk.hid{opacity:.5}.blk.dragging{opacity:.3}
+.blk .ic{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:7px;color:var(--gold)}.blk .tx{flex:1;min-width:0}.blk .tx b{display:block;font-size:14px}.blk .tx small{color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk .ops{display:flex;gap:3px}.blk .ops button{background:none;border:1px solid var(--line);color:var(--txt);border-radius:6px;width:28px;height:28px;font-size:13px}.blk .ops button:hover{border-color:var(--gold)}
+.dropline{height:4px;background:var(--gold);border-radius:3px;margin:-2px 0 6px}.empty{border:2px dashed var(--line);border-radius:12px;padding:30px;text-align:center;color:var(--muted)}
+label{display:block;color:var(--muted);font-size:13px;margin:12px 0 4px}input,textarea,select{width:100%;padding:9px;background:#111711;color:#fff;border:1px solid #485044;border-radius:7px;font-family:inherit;font-size:14px}textarea{min-height:90px;resize:vertical}input[type=color]{padding:2px;height:38px}input[type=checkbox]{width:auto}.hint{font-size:12px;color:var(--muted);margin-top:3px}
+.imgbox{display:flex;gap:8px;align-items:center}.imgbox img{width:64px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.linkprev{font-size:12px;direction:ltr;text-align:left;background:#111711;border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:10px;word-break:break-all}.linkprev div{margin:3px 0}.linkprev .no{color:#e07a7a}
+.pv{display:none;height:100%;justify-content:center;background:#0b0e0b;border-radius:10px;overflow:auto}.pv iframe{border:0;background:#fff;height:100%;width:100%;max-width:100%}.pv.mob iframe{width:390px}
+.toast{position:fixed;bottom:18px;left:18px;background:var(--panel);border:1px solid var(--gold);padding:10px 16px;border-radius:8px;display:none}
+@media(max-width:900px){.app{grid-template-columns:1fr;overflow:auto}.col{overflow:visible}body{height:auto}.col+.col{border-right:0;border-top:1px solid var(--line)}}
+</style></head><body>
+<header class="top"><h1>🎨 صفحه‌ساز سایت</h1><span class="status" id="status">بدون تغییر</span>
+<button class="btn ghost" id="pvBtn">پیش‌نمایش</button><a class="btn ghost" href="/admin">بازگشت به پنل</a><button class="btn" id="save">ذخیره و انتشار</button></header>
+<div class="app">
+ <aside class="col"><h2>بخش‌های اصلی سایت</h2><div id="palMain"></div><h2>بلوک‌های جدید</h2><div id="palNew"></div><p class="hint">بلوک را بکش و روی صفحه رها کن، یا فقط روی آن بزن تا به انتها اضافه شود.</p></aside>
+ <section class="col"><div id="canvas"><div id="list"></div></div>
+  <div class="pv" id="pv"><iframe id="frame" title="پیش‌نمایش"></iframe></div></section>
+ <aside class="col"><div class="tabs"><button data-t="blk" class="on">بلوک</button><button data-t="contact">تماس</button><button data-t="site">ظاهر و سایت</button></div><div id="panel"></div></aside>
+</div><div class="toast" id="toast"></div>
+<script>
+const CSRF={{ csrf_token|tojson }}, S={{ state|tojson }}, SC={{ schema|tojson }}, T=SC.types;
+const $=s=>document.querySelector(s); let uid=0, sel=null, tab='blk', dirty=false;
+S.blocks.forEach(b=>b.uid=++uid); sel=S.blocks[0]?.uid??null;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function mark(){dirty=true;const s=$('#status');s.textContent='تغییرات ذخیره نشده';s.className='status dirty'}
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
+const mk=type=>({uid:++uid,type,visible:true,data:Object.fromEntries(T[type].fields.map(f=>[f.key,f.default]))});
+const find=u=>S.blocks.find(b=>b.uid===u);
+
+function drawPalette(){
+  const used=new Set(S.blocks.map(b=>b.type)); let m='',n='';
+  for(const [k,t] of Object.entries(T)){
+    const dis=t.builtin&&used.has(k);
+    const h=`<button class="pal ${dis?'used':''}" ${dis?'disabled':'draggable="true"'} data-type="${k}"><i>${t.icon}</i>${esc(t.label)}${dis?' ✓':''}</button>`;
+    t.builtin?m+=h:n+=h;
+  }
+  $('#palMain').innerHTML=m;$('#palNew').innerHTML=n;
+}
+function title(b){const d=b.data;return (d.title||d.caption||d.button_text||d.body||'').split('\n')[0].replace(/\*/g,'').slice(0,50)}
+function drawList(){
+  const l=$('#list');
+  if(!S.blocks.length){l.innerHTML='<div class="empty">صفحه خالی است. از ستون کناری یک بلوک بکش اینجا.</div>';return}
+  l.innerHTML=S.blocks.map((b,i)=>`<div class="blk ${b.uid===sel?'sel':''} ${b.visible?'':'hid'}" draggable="true" data-u="${b.uid}"><div class="ic">${T[b.type].icon}</div><div class="tx"><b>${esc(T[b.type].label)}${b.visible?'':' (مخفی)'}</b><small>${esc(title(b))}</small></div><div class="ops"><button data-a="up" title="بالا" ${i?'':'disabled'}>↑</button><button data-a="down" title="پایین" ${i<S.blocks.length-1?'':'disabled'}>↓</button><button data-a="vis" title="نمایش/مخفی">${b.visible?'👁':'🚫'}</button><button data-a="dup" title="کپی" ${T[b.type].builtin?'disabled':''}>⧉</button><button data-a="del" title="حذف">✕</button></div></div>`).join('');
+}
+function draw(){drawPalette();drawList();drawPanel()}
+
+/* ---------- drag & drop ---------- */
+let drag=null;
+document.addEventListener('dragstart',e=>{
+  const p=e.target.closest('.pal'),b=e.target.closest('.blk');
+  drag=p?{k:'new',type:p.dataset.type}:b?{k:'move',u:+b.dataset.u}:null;
+  if(drag){e.dataTransfer.setData('text/plain','x');e.dataTransfer.effectAllowed='move';if(b)setTimeout(()=>b.classList.add('dragging'),0)}
+});
+document.addEventListener('dragend',()=>{drag=null;document.querySelectorAll('.dropline').forEach(x=>x.remove());drawList()});
+function idxAt(y){const k=[...document.querySelectorAll('#list .blk')];let i=0;for(const el of k){const r=el.getBoundingClientRect();if(y>r.top+r.height/2)i++}return i}
+const canvas=$('#canvas');
+canvas.addEventListener('dragover',e=>{if(!drag)return;e.preventDefault();document.querySelectorAll('.dropline').forEach(x=>x.remove());
+  const i=idxAt(e.clientY),k=[...document.querySelectorAll('#list .blk')],ln=document.createElement('div');ln.className='dropline';
+  k[i]?k[i].before(ln):$('#list').append(ln)});
+canvas.addEventListener('drop',e=>{if(!drag)return;e.preventDefault();let i=idxAt(e.clientY);
+  if(drag.k==='move'){const from=S.blocks.findIndex(b=>b.uid===drag.u);const [b]=S.blocks.splice(from,1);if(from<i)i--;S.blocks.splice(i,0,b);sel=b.uid}
+  else{const b=mk(drag.type);S.blocks.splice(i,0,b);sel=b.uid}
+  drag=null;tab='blk';mark();draw();setTab()});
+$('#palMain').addEventListener('click',addFromPal);$('#palNew').addEventListener('click',addFromPal);
+function addFromPal(e){const p=e.target.closest('.pal');if(!p||p.disabled)return;const b=mk(p.dataset.type);S.blocks.push(b);sel=b.uid;tab='blk';mark();draw();setTab()}
+$('#list').addEventListener('click',e=>{
+  const el=e.target.closest('.blk');if(!el)return;const u=+el.dataset.u,i=S.blocks.findIndex(b=>b.uid===u),a=e.target.dataset.a;
+  if(a==='up'&&i>0)[S.blocks[i-1],S.blocks[i]]=[S.blocks[i],S.blocks[i-1]];
+  else if(a==='down'&&i<S.blocks.length-1)[S.blocks[i+1],S.blocks[i]]=[S.blocks[i],S.blocks[i+1]];
+  else if(a==='vis')S.blocks[i].visible=!S.blocks[i].visible;
+  else if(a==='dup'){const c=JSON.parse(JSON.stringify(S.blocks[i]));c.uid=++uid;S.blocks.splice(i+1,0,c);sel=c.uid}
+  else if(a==='del'){if(!confirm('این بلوک حذف شود؟'))return;S.blocks.splice(i,1);if(sel===u)sel=null}
+  else sel=u;
+  if(a)mark();tab='blk';draw();setTab();
+});
+
+/* ---------- panel ---------- */
+function field(f,obj,onchg){
+  const id='f_'+f.key+Math.random().toString(36).slice(2,6),v=obj[f.key]??'';let h=`<label for="${id}">${esc(f.label)}</label>`;
+  if(f.kind==='textarea')h+=`<textarea id="${id}">${esc(v)}</textarea>`;
+  else if(f.kind==='select')h+=`<select id="${id}">${f.options.map(o=>`<option value="${o[0]}" ${o[0]==v?'selected':''}>${esc(o[1])}</option>`).join('')}</select>`;
+  else if(f.kind==='number')h+=`<input id="${id}" type="number" value="${esc(v)}">`;
+  else if(f.kind==='flag')h=`<label><input id="${id}" type="checkbox" ${v==='1'?'checked':''}> ${esc(f.label)}</label>`;
+  else if(f.kind==='color')h+=`<input id="${id}" type="color" value="${esc(v)}">`;
+  else if(f.kind==='image')h+=`<div class="imgbox">${v?`<img src="${esc(v)}" alt="">`:''}<input id="${id}" type="file" accept="image/*">${v?'<button class="btn small ghost" data-clear>حذف</button>':''}</div>`;
+  else h+=`<input id="${id}" value="${esc(v)}" ${f.kind==='url'?'dir="ltr" placeholder="#contact  یا  https://..."':''}>`;
+  if(f.hint)h+=`<div class="hint">${esc(f.hint)}</div>`;
+  return {h,bind(root){const el=root.querySelector('#'+id);if(!el)return;
+    if(f.kind==='image'){el.onchange=async()=>{const fd=new FormData();fd.append('image',el.files[0]);fd.append('csrf_token',CSRF);
+        try{const r=await fetch('/admin/upload-image',{method:'POST',body:fd});const j=await r.json();if(!r.ok)throw Error(j.error);obj[f.key]=j.url;onchg(true)}catch(x){toast(x.message||'آپلود ناموفق بود')}};
+      root.querySelector('[data-clear]')?.addEventListener('click',()=>{obj[f.key]='';onchg(true)})}
+    else{const ev=f.kind==='select'||f.kind==='flag'?'onchange':'oninput';el[ev]=()=>{obj[f.key]=f.kind==='flag'?(el.checked?'1':'0'):el.value;onchg(false)}}}};
+}
+function render(fields,obj,onchg,extra=''){
+  const fs=fields.map(f=>field(f,obj,onchg)),root=$('#panel');root.innerHTML=fs.map(x=>x.h).join('')+extra;fs.forEach(x=>x.bind(root));
+}
+function drawPanel(){
+  if(tab==='blk'){const b=find(sel);
+    if(!b){$('#panel').innerHTML='<p class="hint">یک بلوک را از وسط صفحه انتخاب کن تا ویرایش شود.</p>';return}
+    const t=T[b.type],h=`<h2>${t.icon} ${esc(t.label)}</h2>`;
+    const fs=[...t.fields.map(f=>[f,b.data]),...t.settings.map(f=>[f,S.settings])].map(([f,o])=>field(f,o,full=>{mark();drawList();if(full)drawPanel()}));
+    const root=$('#panel');root.innerHTML=h+fs.map(x=>x.h).join('')+(t.settings.length?'<p class="hint">فیلدهای «متن معرفی، تصویر پس‌زمینه…» برای کل سایت ذخیره می‌شوند.</p>':'');fs.forEach(x=>x.bind(root));
+  }else if(tab==='contact'){
+    const F=(key,label,hint)=>({key,label,kind:'text',default:'',hint});
+    render([F('phone','شماره تماس','مثال: 0700123456 یا +93700123456 (ارقام فارسی هم قبول است)'),F('country_code','کد کشور','فقط ارقام، مثلاً 93 — برای شماره‌هایی که با صفر شروع می‌شوند'),
+      F('whatsapp','واتساپ','شماره یا لینک wa.me — اگر خالی باشد از شماره تماس استفاده می‌شود'),F('telegram','تلگرام','@نام‌کاربری، لینک t.me یا شماره'),
+      F('instagram','اینستاگرام','نام‌کاربری یا لینک'),F('email','ایمیل',''),F('address','آدرس',''),
+      {key:'float_enabled',label:'نمایش دکمه‌های شناور تماس در همه صفحات',kind:'flag',default:'1'}],S.settings,()=>{mark();previewLinks()},'<div class="linkprev" id="lp">…</div>');
+    previewLinks();
+  }else{
+    const A=S.appearance,o=(a)=>SC.appearance[a].map(x=>[x,x]);
+    const fs=[{key:'accent',label:'رنگ اصلی',kind:'color'},{key:'font',label:'فونت',kind:'select',options:o('font')},{key:'radius',label:'گردی گوشه‌ها (۰ تا ۴۰)',kind:'number'},
+      {key:'transition',label:'افکت ورود بخش‌ها',kind:'select',options:o('transition')},{key:'duration',label:'مدت افکت (میلی‌ثانیه)',kind:'number'},
+      {key:'hover_effect',label:'افکت هاور نمونه‌کار',kind:'select',options:o('hover_effect')},{key:'gallery_layout',label:'چیدمان گالری',kind:'select',options:o('gallery_layout')},
+      {key:'title_style',label:'سبک عنوان',kind:'select',options:o('title_style')}].map(f=>field(f,A,()=>mark()));
+    const T2=[['company','نام شرکت'],['slogan','شعار'],['logo_letter','حرف لوگو'],['header_cta_text','متن دکمه تماس بالای سایت'],['footer_text','متن پایین سایت'],['seo_title','عنوان سئو'],['seo_description','توضیح سئو (متا)'],['maker_text','متن سازنده (خالی = مخفی)']].map(([k,l])=>field({key:k,label:l,kind:'text'},S.settings,()=>mark()));
+    const root=$('#panel');root.innerHTML='<h2>ظاهر کلی</h2>'+fs.map(x=>x.h).join('')+'<h2>اطلاعات سایت</h2>'+T2.map(x=>x.h).join('');[...fs,...T2].forEach(x=>x.bind(root));
+  }
+}
+let lt;function previewLinks(){clearTimeout(lt);lt=setTimeout(async()=>{
+  const r=await fetch('/admin/builder/links',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:JSON.stringify({settings:S.settings})}).catch(()=>null);if(!r||!r.ok)return;
+  const j=await r.json(),row=(n,v)=>`<div>${n}: ${v?esc(v):'<span class="no">— تنظیم نشده / نامعتبر —</span>'}</div>`;
+  const el=$('#lp');if(el)el.innerHTML=row('تماس',j.tel_href)+row('واتساپ',j.whatsapp)+row('تلگرام',j.telegram)+row('اینستاگرام',j.instagram)+row('ایمیل',j.email)},350)}
+function setTab(){document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab))}
+document.querySelector('.tabs').addEventListener('click',e=>{const t=e.target.dataset.t;if(t){tab=t;setTab();drawPanel()}});
+
+/* ---------- save / preview ---------- */
+$('#save').onclick=async()=>{
+  const s=$('#status');s.textContent='در حال ذخیره…';s.className='status';
+  try{const r=await fetch('/admin/builder/save',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
+      body:JSON.stringify({blocks:S.blocks.map(b=>({type:b.type,visible:b.visible,data:b.data})),settings:S.settings,appearance:S.appearance})});
+    const j=await r.json();if(!r.ok||!j.ok)throw Error(j.error||'خطا');dirty=false;s.textContent='ذخیره و منتشر شد ✓';s.className='status ok';
+    if($('#pv').style.display==='flex')$('#frame').contentWindow.location.reload()}
+  catch(x){s.textContent='ذخیره نشد: '+x.message;s.className='status err'}
+};
+let pvOn=false;$('#pvBtn').onclick=()=>{pvOn=!pvOn;$('#canvas').style.display=pvOn?'none':'block';const p=$('#pv');p.style.display=pvOn?'flex':'none';
+  if(pvOn){$('#frame').src='/';} $('#pvBtn').textContent=pvOn?'بازگشت به چیدمان':'پیش‌نمایش'};
+addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
+draw();
 </script></body></html>

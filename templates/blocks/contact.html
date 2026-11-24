@@ -1,0 +1,13 @@
+<section class="contact section" id="contact">
+ <div class="contact-info reveal"><div class="section-label">{{ d.label }}</div><h2>{{ d.title|rich }}</h2><p>{{ d.subtitle }}</p>
+  <div class="contact-lines">
+   {% if links.tel_href %}<a href="{{ links.tel_href }}"><small>شماره تماس</small><b dir="ltr" style="text-align:right">{{ settings.phone }}</b></a>{% endif %}
+   {% if links.whatsapp %}<a href="{{ links.whatsapp }}" target="_blank" rel="noopener"><small>واتساپ</small><b>ارسال پیام در واتساپ</b></a>{% endif %}
+   {% if links.telegram %}<a href="{{ links.telegram }}" target="_blank" rel="noopener"><small>تلگرام</small><b>ارسال پیام در تلگرام</b></a>{% endif %}
+   {% if links.instagram %}<a href="{{ links.instagram }}" target="_blank" rel="noopener"><small>اینستاگرام</small><b>مشاهده صفحه</b></a>{% endif %}
+   {% if links.email %}<a href="{{ links.email }}"><small>ایمیل</small><b dir="ltr" style="text-align:right">{{ links.email[7:] }}</b></a>{% endif %}
+   {% if settings.address %}<div><small>موقعیت / آدرس</small><b>{{ settings.address }}</b></div>{% endif %}
+  </div>
+ </div>
+ <form class="contact-form reveal" id="contactForm"><h3>{{ d.form_title }}</h3><label>نام و نام خانوادگی<input name="name" required maxlength="120" placeholder="نام شما"></label><label>شماره تماس<input name="phone" required type="tel" maxlength="40" placeholder="شماره‌ای که با آن تماس بگیریم"></label><label>موضوع پروژه<select name="service">{% for c in categories %}<option>{{ c.title }}</option>{% endfor %}<option>سایر</option></select></label><label>توضیحات پروژه<textarea name="message" rows="3" maxlength="3000" placeholder="نوع پروژه، محل و توضیحات کوتاه..."></textarea></label><input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="button gold" type="submit">ارسال درخواست <b></b></button><p class="form-help" id="formHelp" role="status">درخواست شما برای ما ارسال می‌شود و در اسرع وقت تماس می‌گیریم.</p></form>
+</section>

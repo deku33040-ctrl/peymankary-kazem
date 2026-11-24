@@ -1,0 +1,7 @@
+<section class="work section" id="projects">
+ <div class="section-head reveal"><div><div class="section-label">{{ d.label }}</div><h2>{{ d.title|rich }}</h2></div><p>{{ d.subtitle }}</p></div>
+ <div class="work-grid" id="projectGrid">
+  {% for p in projects %}<a class="work-card reveal{% if loop.first %} work-feature{% endif %}" href="{{ url_for('project_detail', pid=p.id) }}"><div class="work-photo" role="img" aria-label="{{ p.title }}"{% if p.image %} style="background-image:linear-gradient(#10151022,#10151022),url('{{ p.image }}');background-size:cover;background-position:center"{% endif %}><span>{{ p.category }}</span>{% if p.is_favorite %}<b class="favorite-tag">★ محبوب</b>{% endif %}</div><div class="work-info"><div><small>{{ p.category }}</small><h3>{{ p.title }}</h3></div><b>{{ '%02d'|format(loop.index) }}</b></div></a>
+  {% else %}<p class="empty-projects">هنوز نمونه‌کاری ثبت نشده است.</p>{% endfor %}
+ </div>
+</section>

@@ -1,13 +1,17 @@
-import os, sqlite3, secrets, io, csv, time, json, re
+import os, sys, sqlite3, secrets, io, csv, time, json, re
+from datetime import timedelta
 from pathlib import Path
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort, send_file, g
+from werkzeug.middleware.proxy_fix import ProxyFix
+from markupsafe import Markup, escape
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 import bleach
+import helpers as H
 
 BASE = Path(__file__).resolve().parent
-DB = BASE / 'kazemi.db'
+DB = Path(os.environ.get('KAZEMI_DB') or BASE / 'kazemi.db')
 UPLOAD_DIR = BASE / 'static' / 'uploads'
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ALLOWED = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
@@ -15,6 +19,8 @@ FONT_ALLOWED = {'woff2','woff','ttf','otf'}
 FONT_DIR = BASE / 'static' / 'fonts'
 FONT_DIR.mkdir(parents=True, exist_ok=True)
 app = Flask(__name__)
+if os.environ.get('TRUST_PROXY') == '1':  # فقط پشت nginx/میزبان معتبر فعال شود تا IP واقعی کاربر دیده شود
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 def load_secret_key():
     configured = os.environ.get('SECRET_KEY')
     if configured:
@@ -28,18 +34,16 @@ def load_secret_key():
         try: key_file.chmod(0o600)
         except OSError: pass
         return value
-    except OSError as exc:
-        # A random key per worker/restart invalidates every login session.
-        # On read-only or multi-worker hosts, configure SECRET_KEY explicitly.
-        raise RuntimeError(
-            'SECRET_KEY must be set in the hosting environment when the app '
-            'cannot persist .kazemi_secret_key.'
-        ) from exc
+    except OSError:
+        return secrets.token_urlsafe(48)
 
 app.secret_key = load_secret_key()
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax')
+app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax',
+                  SESSION_COOKIE_SECURE=os.environ.get('SESSION_COOKIE_SECURE') == '1',
+                  PERMANENT_SESSION_LIFETIME=timedelta(hours=12))
 LOGIN_ATTEMPTS = {}
+CONTACT_HITS = {}
 
 DEFAULTS = {
  'company':'پیمانکاری کاظمی', 'slogan':'سنگ‌کاری • نما • اجرای ساختمان',
@@ -48,13 +52,38 @@ DEFAULTS = {
  'quote':'اعتماد با حرف ساخته نمی‌شود؛ با کیفیت کار، ماندگار می‌شود.',
  'experience':'۱۰+', 'projectsCount':'۷۰+', 'phone':'', 'telegram':'', 'address':'',
  'seo_title':'پیمانکاری کاظمی | سنگ‌کاری و اجرای ساختمان',
- 'seo_description':'اجرای تخصصی سنگ‌کاری، نمای ساختمان، بازسازی و پیمانکاری ساختمان در ایران.', 'accent_color':'#c7a46b', 'home_projects_limit':'12', 'seo_city':'', 'visual_layout':'{}', 'custom_font':'', 'about_bg_image':'', 'statement_bg_image':'', 'maker_text':'MADE BY DEKU', 'maker_url':'#'
+ 'seo_description':'اجرای تخصصی سنگ‌کاری، نمای ساختمان، بازسازی و پیمانکاری ساختمان در ایران.', 'accent_color':'#c7a46b', 'home_projects_limit':'12', 'seo_city':'', 'visual_layout':'{}', 'custom_font':'', 'about_bg_image':'', 'statement_bg_image':'', 'maker_text':'MADE BY DEKU', 'maker_url':'#',
+ 'whatsapp':'', 'instagram':'', 'email':'', 'country_code':'', 'logo_letter':'K', 'header_cta_text':'تماس و مشاوره',
+ 'footer_text':'', 'float_enabled':'1'
 }
 
+class Conn(sqlite3.Connection):
+    """with db() as con: ... هم commit می‌کند و هم اتصال را می‌بندد."""
+    def __exit__(self, *exc):
+        try: return super().__exit__(*exc)
+        finally: self.close()
+
 def db():
-    con = sqlite3.connect(DB)
+    con = sqlite3.connect(DB, factory=Conn, timeout=10)
     con.row_factory = sqlite3.Row
     return con
+
+def seed_blocks(con):
+    """اولین اجرا: چیدمان قبلی و «بخش‌های اختصاصی» قدیمی به بلوک تبدیل می‌شوند."""
+    if con.execute('SELECT 1 FROM blocks LIMIT 1').fetchone(): return
+    try: old = json.loads(con.execute("SELECT value FROM settings WHERE key='visual_layout'").fetchone()[0] or '{}')
+    except (TypeError, ValueError): old = {}
+    names = {'home':'hero','about':'about','services':'services','projects':'projects','statement':'statement','contact':'contact'}
+    seq = [names[k] for k in old.get('order', []) if k in names] or [n for n in H.DEFAULT_ORDER if n != 'blog']
+    seq += [n for n in H.DEFAULT_ORDER if n not in seq and n != 'blog']
+    seq.insert(seq.index('projects')+1 if 'projects' in seq else len(seq), 'blog')
+    hidden = {names[k] for k in old.get('hidden', []) if k in names}
+    rows = [(t, {}, 0 if t in hidden else 1) for t in seq]
+    legacy = [(r['title'], r['content'], r['is_visible']) for r in con.execute('SELECT * FROM home_sections ORDER BY sort_order,id')]
+    at = rows.index(next(r for r in rows if r[0] == 'statement')) if any(r[0] == 'statement' for r in rows) else len(rows)
+    rows[at:at] = [('text', {'title': t, 'body': c, 'bg': 'light'}, v) for t, c, v in legacy]
+    for i, (t, d, v) in enumerate(rows):
+        con.execute('INSERT INTO blocks(type,data,sort_order,is_visible) VALUES(?,?,?,?)', (t, json.dumps(H.clean_block(t, d), ensure_ascii=False), i, v))
 
 def init_db():
     with db() as con:
@@ -96,22 +125,42 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )''')
+        con.execute('''CREATE TABLE IF NOT EXISTS blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT NOT NULL, data TEXT NOT NULL DEFAULT '{}', sort_order INTEGER NOT NULL DEFAULT 0, is_visible INTEGER NOT NULL DEFAULT 1)''')
+        # Publish an initial editorial library once; existing posts are never overwritten.
+        seed_articles = [('راهنمای جامع اجرای سنگ لاشه', 'rahnamaye-ejra-sang-lashe', 'مراحل انتخاب سنگ، زیرسازی، چیدمان، نصب و بندکشی', 'دیوار باغ، نمای ویلا و محوطه', 'هماهنگی اندازه قطعات و تکیه\u200cگاه پایدار', 'پیش از اجرا نمونه چیدمان بسازید و روش مهار را مشخص کنید'), ('سنگ مالون چیست و چه تفاوتی با سنگ لاشه دارد؟', 'fargh-sang-malon-lashe', 'تفاوت فرم طبیعی، میزان تراش و کاربرد سنگ مالون و لاشه', 'دیوارچینی، نما و عناصر محوطه', 'نام تجاری به\u200cتنهایی مشخصات فنی را روشن نمی\u200cکند', 'در سفارش ضخامت، میزان تراش و نمونه محموله را ثبت کنید'), ('فروش سنگ لاشه؛ نکات مهم پیش از خرید', 'kharid-foroosh-sang-lashe', 'ارزیابی کیفیت محموله، هزینه حمل، شکستگی و مقدار سفارش', 'تأمین سنگ برای پروژه\u200cهای ساختمانی و محوطه', 'مقایسه صرف قیمت هر تن می\u200cتواند گمراه\u200cکننده باشد', 'هزینه سنگ قابل استفاده، بارگیری و حمل را یکجا مقایسه کنید'), ('سنگ ورقه\u200cای برای کف حیاط و محوطه', 'sang-varaghei-kaf-hayat', 'ویژگی\u200cهای سنگ تخت، ضخامت، زبری و روش نصب', 'حیاط، مسیر باغ و محوطه ویلا', 'لغزندگی، اختلاف ارتفاع و نشست زیرکار', 'نمونه را در حالت خیس ببینید و شیب تخلیه آب را اجرا کنید'), ('اجرای نمای ساختمان با سنگ لاشه', 'ejraye-namay-sakhteman-sang-lashe', 'طراحی نما، وزن سنگ، زیرسازی و مهار ایمن', 'نمای بیرونی ساختمان و ویلا', 'وزن زیاد و خطر جداشدن سنگ از نما', 'جزئیات مهار و ظرفیت بستر باید توسط متخصص بررسی شود'), ('محوطه\u200cسازی باغ و ویلا با سنگ طبیعی', 'mohavate-sazi-bagh-ba-sang', 'ترکیب مسیر سنگی، دیوار، لبه باغچه و آبنما', 'باغ، ویلا و فضای سبز', 'نبود طرح یکپارچه و جمع\u200cشدن آب', 'مسیر حرکت، زهکشی و هماهنگی رنگ\u200cها را از ابتدا طراحی کنید'), ('سنگ کوهی، مالون و ورقه\u200cای؛ کدام را بخریم؟', 'moghayese-sang-kohi-malon-varaghei', 'مقایسه ویژگی\u200cهای ظاهری و کاربردی انواع سنگ طبیعی', 'کف، دیوار و نما', 'تفاوت کیفیت محصولات با نام مشابه', 'نمونه واقعی، ضخامت و کاربرد نهایی را مبنای انتخاب قرار دهید'), ('اجرای دیوار باغ با سنگ مالون', 'divar-bagh-sang-malon', 'نکات پی\u200cسازی، رج\u200cبندی، درپوش و زهکشی', 'دیوار محوطه و دیوار باغ', 'اشتباه گرفتن دیوار تزئینی با دیوار حائل', 'در دیوار نگهدارنده خاک، طراحی سازه\u200cای و زهکشی ضروری است'), ('سنگ\u200cکاری آبنما و آبشار سنگی', 'sang-kari-abnama-abshar', 'انتخاب سنگ، آب\u200cبندی، پمپ و مسیر گردش آب', 'آبنما و آبشار محوطه', 'نشتی، رسوب و دسترسی دشوار به تجهیزات', 'آب\u200cبندی را مستقل از سنگ\u200cکاری آزمایش کنید'), ('سنگ قلوه\u200cای و رودخانه\u200cای در طراحی محوطه', 'sang-gholvei-rudkhane-mohavate', 'کاربرد قلوه\u200cسنگ در نوارهای تزئینی و اطراف آبنما', 'محوطه، باغچه و حاشیه آبنما', 'حرکت سنگ\u200cهای گرد در مسیرهای پرتردد', 'برای مسیر عبور، بستر و تثبیت متناسب طراحی کنید'), ('کف\u200cسازی سنگی حیاط؛ شیب\u200cبندی و زهکشی', 'kaf-sazi-sangi-hayat', 'زیرسازی، تراکم، شیب و جلوگیری از لق\u200cشدن', 'حیاط، پارکینگ و مسیر پیاده', 'تجمع آب و نشست قطعات', 'بارگذاری و شیب تخلیه را پیش از نصب تعیین کنید'), ('قیمت اجرای سنگ لاشه چگونه محاسبه می\u200cشود؟', 'ghimat-ejra-sang-lashe', 'عوامل مؤثر بر مصالح، حمل، زیرسازی و دستمزد', 'برآورد پروژه سنگ\u200cکاری', 'اعلام قیمت بدون اندازه\u200cگیری و شناخت زیرکار', 'شرح خدمات و واحد اندازه\u200cگیری را در پیش\u200cفاکتور بنویسید'), ('نمای ویلایی با سنگ طبیعی؛ ترکیب با چوب و آجر', 'namaye-vilayi-sang-tabiyee', 'ایده\u200cهای ترکیب سنگ با چوب، آجر و بتن', 'نمای ویلا و ورودی ساختمان', 'ناهماهنگی رنگ و اتصال نامناسب متریال\u200cها', 'پیش از اجرا یک نمونه در مقیاس واقعی بسازید'), ('اجرای پله و مسیر سنگی در باغ', 'pelle-masiri-sangi-bagh', 'ابعاد پله، پاگرد، اصطکاک و تخلیه آب', 'مسیرهای شیب\u200cدار و باغ', 'پله\u200cهای ناهم\u200cاندازه و سطح لغزنده', 'ارتفاع و عمق پله\u200cها را یکنواخت و ایمن اجرا کنید'), ('بندکشی سنگ لاشه؛ رنگ ملات و اجرای تمیز', 'bandkeshi-sang-lashe', 'انتخاب رنگ بند، آماده\u200cسازی درز و پاک\u200cکردن ملات', 'نما و دیوار سنگی', 'ترک، حفره و لکه ملات روی سنگ', 'ابتدا نمونه بندکشی را روی چند قطعه آزمایش کنید'), ('نگهداری و شست\u200cوشوی نمای سنگی', 'negahdari-shosteshooye-namay-sangi', 'تمیزکاری، شوره\u200cزدگی و پیشگیری از نفوذ رطوبت', 'نمای سنگی و دیوار محوطه', 'استفاده از شوینده اسیدی یا پاک\u200cکردن بدون رفع علت', 'منبع رطوبت را پیدا کنید و شوینده را ابتدا روی نقطه پنهان بیازمایید'), ('انتخاب سنگ برای آب\u200cوهوای سرد و پرباران', 'entekhab-sang-sarma-barani', 'جذب آب، یخ\u200cزدگی و جزئیات تخلیه آب', 'فضاهای بیرونی در اقلیم سرد یا مرطوب', 'آب محبوس در بندها و پشت سنگ', 'مشخصات فنی و سازگاری ملات و سنگ را بررسی کنید'), ('سنگ کوبیک در محوطه\u200cسازی و کف\u200cسازی', 'sang-koobik-kaf-sazi', 'الگوی چیدمان، ضخامت و مهار قطعات', 'مسیر، حیاط و فضاهای پرتردد', 'حرکت قطعات و نشست بستر', 'زیرسازی و مهار لبه\u200cها را بر اساس بار طراحی کنید'), ('چطور مقدار سنگ موردنیاز پروژه را برآورد کنیم؟', 'baravord-meghdar-sang-proje', 'اندازه\u200cگیری سطوح، محاسبه پرت و واحد خرید', 'خرید سنگ برای پروژه', 'اشتباه گرفتن تن، مترمربع و مترمکعب', 'هر سطح و نوع سنگ را جداگانه متره کنید'), ('اشتباهات رایج در اجرای سنگ لاشه', 'eshtebahat-ejra-sang-lashe', 'خطاهای انتخاب، زیرسازی، نصب و کنترل کیفیت', 'تمام پروژه\u200cهای سنگ لاشه', 'پوشاندن ایرادهای زیرکار با سنگ\u200cکاری نهایی', 'مراحل پنهان را پیش از پوشانده\u200cشدن کنترل و مستندسازی کنید')]
+        for title, slug, focus, usage, risk, advice in seed_articles:
+            if con.execute('SELECT 1 FROM blog_posts WHERE slug=?', (slug,)).fetchone():
+                continue
+            excerpt = f'{focus}؛ نکات انتخاب و اجرای درست برای {usage}.'
+            content = f'''
+<h2>مقدمه</h2>
+<p>{title} از موضوعات مهم در انتخاب و اجرای سنگ طبیعی است. نتیجه ماندگار تنها به ظاهر سنگ وابسته نیست؛ شناخت محل مصرف، کیفیت مصالح، آماده‌سازی بستر و اجرای درست در کنار هم اهمیت دارند. در این راهنما نکته‌هایی را مرور می‌کنیم که پیش از خرید یا شروع کار باید در نظر گرفته شوند تا تصمیم‌گیری بر اساس نیاز واقعی پروژه باشد.</p>
+<h2>انتخاب مصالح و بررسی شرایط پروژه</h2>
+<p>{focus}. این موضوع برای کاربردهایی مانند {usage} اهمیت ویژه‌ای دارد. پیش از سفارش، نمونه واقعی سنگ را از نظر رنگ، بافت، ضخامت، سلامت لبه‌ها و یکنواختی بررسی کنید. شرایط اقلیمی، میزان رفت‌وآمد، تماس با آب و بار وارد بر سطح نیز باید در انتخاب لحاظ شود. نام تجاری یا عکس اینترنتی به‌تنهایی مشخصات فنی یک محموله را اثبات نمی‌کند؛ از فروشنده اطلاعات دقیق همان محصول را بخواهید.</p>
+<h2>نکات اجرایی و خطاهای قابل پیشگیری</h2>
+<p>در زمان اجرا، بستر باید متناسب با نوع کار آماده و پایدار شود. تراز، شاقول، شیب‌بندی و مسیر خروج آب را پیش از نصب مشخص کنید. قطعات باید به شکلی چیده شوند که تکیه‌گاه کافی داشته باشند و بندها بدون حفره و با نظم قابل قبول تکمیل شوند. یکی از ریسک‌های مهم این کار، {risk} است؛ بنابراین مراحل زیرکار و جزئیات اتصال را پیش از پوشانده‌شدن کنترل کنید. در نماهای مرتفع، دیوارهای حائل و سطوحی که بار قابل توجه دارند، بررسی فنی و اجرای مهار متناسب ضروری است.</p>
+<h2>کنترل کیفیت و نگهداری</h2>
+<p>{advice}. در پایان کار، سطح از نظر لق‌شدن، اختلاف ارتفاع، ترک، بندهای ناقص و مسیر تخلیه آب بررسی شود. برای نظافت نیز از مواد شیمیایی ناشناخته یا ابزار خشن استفاده نکنید؛ روش تمیزکاری باید با جنس و پرداخت سنگ سازگار باشد. ثبت عکس از مراحل اجرا و نگهداری مشخصات سنگ مصرفی، در تعمیرات آینده کمک‌کننده است.</p>
+<h2>پیش از سفارش چه اطلاعاتی آماده کنیم؟</h2>
+<p>ابعاد تقریبی، عکس واضح از محل، نوع کاربری، شهر و شرایط دسترسی کارگاه را آماده کنید. سپس درباره نوع سنگ، مقدار و واحد فروش، هزینه حمل، زیرسازی، روش نصب، بندکشی، زمان‌بندی و موارد خارج از تعهد سؤال کنید. برآورد دقیق قیمت بدون اندازه‌گیری و شناخت شرایط محل ممکن نیست؛ قیمت روز را هنگام سفارش از فروشنده و مجری استعلام کنید.</p>
+<p><strong>پیمانکاری کاظمی</strong> برای بررسی نیاز پروژه و انتخاب روش مناسب سنگ‌کاری، آماده دریافت توضیحات و تصاویر محل اجراست.</p>
+'''
+            meta = f'{title}؛ راهنمای انتخاب مصالح، نکات اجرا و کنترل کیفیت برای {usage}.'
+            con.execute('INSERT INTO blog_posts(title,slug,excerpt,content,image,meta_description,is_published) VALUES(?,?,?,?,?,?,1)',
+                        (title, slug, excerpt, content, '', meta[:160]))
+
         con.execute('''CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT, service TEXT, message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         con.execute('''CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL)''')
         for k,v in DEFAULTS.items():
             con.execute('INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)',(k,v))
-        # Always ensure a known bootstrap admin exists. Environment variables
-        # can override these credentials on the hosting platform.
-        username = (os.environ.get('ADMIN_USERNAME') or 'admin').strip()[:80]
-        password = os.environ.get('ADMIN_PASSWORD') or 'Kazemi-Change-This-2026!'
-        if not username:
-            username = 'admin'
-        password_hash = generate_password_hash(password)
-        con.execute(
-            '''INSERT INTO admins(username,password_hash) VALUES(?,?)
-               ON CONFLICT(username) DO UPDATE SET password_hash=excluded.password_hash''',
-            (username, password_hash)
-        )
+        seed_blocks(con)
+        if not con.execute('SELECT id FROM admins LIMIT 1').fetchone():
+            username = os.environ.get('ADMIN_USERNAME', 'admin')
+            password = os.environ.get('ADMIN_PASSWORD')
+            if not password:  # رمز پیش‌فرض ثابت در کد نداریم؛ رمز تصادفی ساخته و یک‌بار نمایش داده می‌شود
+                password = secrets.token_urlsafe(12)
+                print(f'\n*** رمز اولیه مدیر ***\n  نام کاربری: {username}\n  رمز عبور: {password}\n  (فوراً از پنل تغییر دهید؛ در صورت فراموشی: python app.py reset-admin)\n', flush=True)
+            con.execute('INSERT INTO admins(username,password_hash) VALUES(?,?)',(username,generate_password_hash(password)))
 
 init_db()
 
@@ -122,7 +171,8 @@ def inject_csrf():
     return {'csrf_token': session['csrf_token']}
 
 def valid_csrf():
-    return secrets.compare_digest(str(session.get('csrf_token', '')), str(request.form.get('csrf_token', '')))
+    sent = request.form.get('csrf_token') or request.headers.get('X-CSRF-Token', '')
+    return secrets.compare_digest(str(session.get('csrf_token', '')), str(sent))
 
 def admin_required(fn):
     @wraps(fn)
@@ -135,24 +185,65 @@ def admin_required(fn):
     return wrapped
 
 def get_settings():
+    if 'settings' not in g:
+        with db() as con:
+            values = dict(DEFAULTS)
+            values.update({r['key']:r['value'] for r in con.execute('SELECT key,value FROM settings')})
+        g.settings = values
+    return g.settings
+
+def get_layout(settings=None):
+    try: raw = json.loads((settings or get_settings()).get('visual_layout') or '{}')
+    except (TypeError, ValueError): raw = {}
+    return H.clean_appearance(raw)
+
+def load_blocks(con, only_visible=False):
+    out = []
+    for r in con.execute('SELECT * FROM blocks ORDER BY sort_order,id'):
+        if r['type'] not in H.BLOCK_TYPES or (only_visible and not r['is_visible']): continue
+        try: data = json.loads(r['data'] or '{}')
+        except ValueError: data = {}
+        out.append({'id': r['id'], 'type': r['type'], 'visible': bool(r['is_visible']), 'data': H.fill_defaults(r['type'], data)})
+    return out
+
+@app.context_processor
+def inject_site():
+    settings = get_settings()
     with db() as con:
-        values = dict(DEFAULTS)
-        values.update({r['key']:r['value'] for r in con.execute('SELECT key,value FROM settings')})
-        return values
+        nav_pages = con.execute('SELECT title,slug FROM custom_pages WHERE is_published=1 ORDER BY id').fetchall()
+    return {'settings': settings, 'layout': get_layout(settings), 'links': H.contact_links(settings), 'nav_pages': nav_pages, 'year': time.strftime('%Y')}
+
+@app.template_filter('fa_date')
+def fa_date_filter(value): return H.jalali(value)
+
+@app.template_filter('nl2br')
+def nl2br_filter(value): return Markup('<br>').join(escape(line) for line in str(value or '').split('\n'))
+
+@app.template_filter('rich')
+def rich_filter(value):
+    """متن امن عنوان: خط جدید = <br> و *کلمه* = برجسته."""
+    html = str(nl2br_filter(value))
+    return Markup(re.sub(r'\*([^*<]+)\*', r'<em>\1</em>', html))
+
+@app.after_request
+def security_headers(resp):
+    resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    resp.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+    resp.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    if request.path.startswith('/admin'): resp.headers['Cache-Control'] = 'no-store'
+    return resp
 
 @app.get('/')
 def home():
-    
     settings = get_settings()
-    try: layout = json.loads(settings.get('visual_layout', '{}'))
-    except (TypeError, ValueError): layout = {}
+    try: limit = max(3, min(60, int(settings.get('home_projects_limit') or 12)))
+    except ValueError: limit = 12
     with db() as con:
         categories = con.execute('SELECT * FROM service_categories ORDER BY id').fetchall()
-        projects = con.execute('SELECT * FROM projects ORDER BY is_favorite DESC,id DESC LIMIT 60').fetchall()
-        pages = con.execute('SELECT title,slug FROM custom_pages WHERE is_published=1 ORDER BY id DESC').fetchall()
-        home_sections = con.execute('SELECT * FROM home_sections WHERE is_visible=1 ORDER BY sort_order,id').fetchall()
+        projects = con.execute('SELECT * FROM projects ORDER BY is_favorite DESC,id DESC LIMIT ?', (limit,)).fetchall()
         blog_posts = con.execute('SELECT id,title,slug,excerpt,image,created_at FROM blog_posts WHERE is_published=1 ORDER BY created_at DESC,id DESC LIMIT 3').fetchall()
-    return render_template('index.html', settings=settings, layout=layout, categories=categories, projects=projects, pages=pages, home_sections=home_sections, blog_posts=blog_posts)
+        blocks = load_blocks(con, only_visible=True)
+    return render_template('index.html', blocks=blocks, categories=categories, projects=projects, blog_posts=blog_posts)
 
 @app.get('/service/<slug>')
 def service_detail(slug):
@@ -215,11 +306,19 @@ def public_data():
         projects = [dict(r) for r in con.execute('SELECT id,title,category,description,image,is_favorite FROM projects ORDER BY is_favorite DESC, id DESC')]
     with db() as con:
         categories = [dict(r) for r in con.execute('SELECT title,slug,description FROM service_categories ORDER BY id')]
-    return jsonify({'settings':get_settings(),'projects':projects,'categories':categories})
+    public = {k: v for k, v in get_settings().items() if k in ('company','slogan','phone','whatsapp','telegram','instagram','email','address')}
+    return jsonify({'settings':public,'links':H.contact_links(get_settings()),'projects':projects,'categories':categories})
 
 @app.post('/api/contact')
 def contact():
+    ip = request.remote_addr or 'unknown'
+    hits = [t for t in CONTACT_HITS.get(ip, []) if time.time() - t < 3600]
+    if len(hits) >= 5:
+        return jsonify({'ok':False,'error':'تعداد درخواست‌ها زیاد است؛ کمی بعد دوباره تلاش کنید.'}), 429
     data = request.get_json(silent=True) or request.form
+    if str(data.get('website','')).strip():  # honeypot: فقط ربات‌ها این فیلد پنهان را پر می‌کنند
+        return jsonify({'ok':True,'message':'درخواست شما ثبت شد. با شما تماس می‌گیریم.'})
+    CONTACT_HITS[ip] = hits + [time.time()]
     name = str(data.get('name','')).strip()[:120]
     phone = str(data.get('phone','')).strip()[:40]
     service = str(data.get('service','')).strip()[:120]
@@ -246,7 +345,7 @@ def admin_login():
             user = con.execute('SELECT * FROM admins WHERE username=?',(username,)).fetchone()
         if user and check_password_hash(user['password_hash'], password):
             LOGIN_ATTEMPTS.pop(ip, None)
-            session.clear(); session['admin_id'] = user['id']; session['admin_name'] = user['username']; session['csrf_token'] = secrets.token_urlsafe(32)
+            session.clear(); session.permanent = True; session['admin_id'] = user['id']; session['admin_name'] = user['username']; session['csrf_token'] = secrets.token_urlsafe(32)
             return redirect(url_for('admin_dashboard'))
         LOGIN_ATTEMPTS[ip] = (attempts + 1, started)
         flash('نام کاربری یا رمز عبور اشتباه است.','error')
@@ -268,48 +367,42 @@ def admin_dashboard():
         latest_message = con.execute('SELECT MAX(created_at) FROM messages').fetchone()[0]
         categories = con.execute('SELECT * FROM service_categories ORDER BY id').fetchall()
         pages = con.execute('SELECT * FROM custom_pages ORDER BY id DESC').fetchall()
-        home_sections = con.execute('SELECT * FROM home_sections ORDER BY sort_order,id').fetchall()
         blog_posts = con.execute('SELECT * FROM blog_posts ORDER BY created_at DESC,id DESC').fetchall()
-    return render_template('admin_dashboard.html', settings=get_settings(), projects=projects, messages=messages, total_projects=total_projects, total_messages=total_messages, latest_message=latest_message, categories=categories, pages=pages, home_sections=home_sections, blog_posts=blog_posts)
+    return render_template('admin_dashboard.html', settings=get_settings(), projects=projects, messages=messages, total_projects=total_projects, total_messages=total_messages, latest_message=latest_message, categories=categories, pages=pages, blog_posts=blog_posts)
 
 @app.get('/admin/builder')
 @admin_required
 def visual_builder():
     settings = get_settings()
-    try: layout = json.loads(settings.get('visual_layout', '{}'))
-    except (TypeError, ValueError): layout = {}
-    return render_template('admin_builder.html', settings=settings, layout=layout)
+    with db() as con: blocks = load_blocks(con)
+    state = {'blocks': blocks, 'appearance': get_layout(settings),
+             'settings': {k: settings.get(k, '') for k in H.SETTING_FIELDS}}
+    return render_template('admin_builder.html', state=state, schema=H.public_schema())
 
-@app.post('/admin/builder')
+@app.post('/admin/builder/save')
 @admin_required
 def save_visual_builder():
-    allowed_sections = {'home','about','services','projects','statement','contact'}
-    order = request.form.getlist('section_order')
-    order = [x for x in order if x in allowed_sections]
-    order = list(dict.fromkeys(order))
-    order += [x for x in ['home','about','services','projects','statement','contact'] if x not in order]
-    hidden = [x for x in request.form.getlist('hidden_sections') if x in allowed_sections]
-    transition = request.form.get('transition', 'fade-up')
-    if transition not in {'none','fade','fade-up','slide-left','zoom','flip','blur'}: transition = 'fade-up'
-    try: duration = max(100, min(2000, int(request.form.get('duration','650'))))
-    except ValueError: duration = 650
-    accent = request.form.get('accent', '#c7a46b').strip()
-    if not re.fullmatch(r'#[0-9a-fA-F]{6}', accent): accent = '#c7a46b'
-    try: radius = max(0, min(40, int(request.form.get('radius','14'))))
-    except ValueError: radius = 14
-    font = request.form.get('font', 'Tahoma').strip()
-    if font not in {'Tahoma','Arial','Vazirmatn','sans-serif'}: font = 'Tahoma'
-    hover = request.form.get('hover_effect','zoom')
-    if hover not in {'none','zoom','lift','tilt'}: hover='zoom'
-    gallery = request.form.get('gallery_layout','grid')
-    if gallery not in {'grid','masonry','slider'}: gallery='grid'
-    title_style = request.form.get('title_style','classic')
-    if title_style not in {'classic','underline','center'}: title_style='classic'
-    config = {'order':order, 'hidden':hidden, 'transition':transition, 'duration':duration, 'accent':accent, 'radius':radius, 'font':font, 'hover_effect':hover, 'gallery_layout':gallery, 'title_style':title_style}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict): return jsonify({'ok': False, 'error': 'داده نامعتبر است.'}), 400
+    blocks = H.clean_blocks(payload.get('blocks'))
+    settings = H.clean_settings(payload.get('settings'))
+    appearance = H.clean_appearance(payload.get('appearance'))
+    settings['accent_color'] = appearance['accent']
+    settings['visual_layout'] = json.dumps(appearance, ensure_ascii=False)
     with db() as con:
-        con.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', ('visual_layout', json.dumps(config, ensure_ascii=False)))
-    flash('چیدمان و ظاهر سایت ذخیره شد.','success')
-    return redirect(url_for('visual_builder'))
+        con.execute('DELETE FROM blocks')
+        for i, b in enumerate(blocks):
+            con.execute('INSERT INTO blocks(type,data,sort_order,is_visible) VALUES(?,?,?,?)', (b['type'], json.dumps(b['data'], ensure_ascii=False), i, 1 if b['visible'] else 0))
+        for k, v in settings.items():
+            con.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', (k, str(v)))
+    return jsonify({'ok': True, 'blocks': len(blocks)})
+
+@app.post('/admin/builder/links')
+@admin_required
+def builder_links():
+    """پیش‌نمایش لینک‌های تماس با همان منطقی که سایت استفاده می‌کند."""
+    merged = dict(get_settings()); merged.update(H.clean_settings((request.get_json(silent=True) or {}).get('settings')))
+    return jsonify(H.contact_links(merged))
 
 def make_slug(value):
     value = re.sub(r'[^\w\u0600-\u06FF-]+', '-', value.strip().lower()).strip('-')
@@ -341,27 +434,6 @@ def delete_category(cid):
     flash('خدمت حذف شد؛ نمونه‌کارهای قبلی حذف نمی‌شوند.','success')
     return redirect(url_for('admin_dashboard')+'#categories')
 
-@app.post('/admin/sections/add')
-@admin_required
-def add_home_section():
-    title=request.form.get('title','').strip()[:160]
-    content=request.form.get('content','').strip()[:5000]
-    if not title or not content:
-        flash('عنوان و متن بخش الزامی است.','error')
-    else:
-        with db() as con:
-            next_order=con.execute('SELECT COALESCE(MAX(sort_order),0)+1 FROM home_sections').fetchone()[0]
-            con.execute('INSERT INTO home_sections(title,content,sort_order) VALUES(?,?,?)',(title,content,next_order))
-        flash('بخش جدید به صفحه اصلی اضافه شد.','success')
-    return redirect(url_for('admin_dashboard')+'#sections')
-
-@app.post('/admin/sections/<int:sid>/delete')
-@admin_required
-def delete_home_section(sid):
-    with db() as con: con.execute('DELETE FROM home_sections WHERE id=?',(sid,))
-    flash('بخش صفحه اصلی حذف شد.','success')
-    return redirect(url_for('admin_dashboard')+'#sections')
-
 @app.post('/admin/pages/add')
 @admin_required
 def add_page():
@@ -392,8 +464,13 @@ def clean_rich_html(value):
     allowed_attrs = {'a':['href','title','target','rel'], 'img':['src','alt','title','width','height']}
     cleaned = bleach.clean(value or '', tags=allowed_tags, attributes=allowed_attrs,
                            protocols={'http','https','mailto'}, strip=True)
-    return bleach.linkifier.Linker().linkify(cleaned)
+    def safe_rel(attrs, new=False):
+        if (None, 'href') in attrs:
+            attrs[(None, 'rel')] = 'noopener noreferrer nofollow'
+        return attrs
+    return bleach.linkifier.Linker(callbacks=[safe_rel]).linkify(cleaned)
 
+@app.post('/admin/upload-image')
 @app.post('/admin/blog/inline-image')
 @admin_required
 def upload_blog_inline_image():
@@ -471,12 +548,13 @@ def edit_blog_post(post_id):
         flash(str(e),'error')
         return redirect(url_for('blog_post_editor', post_id=post_id))
     with db() as con:
-        old = con.execute('SELECT id FROM blog_posts WHERE id=?',(post_id,)).fetchone()
+        old = con.execute('SELECT id,image FROM blog_posts WHERE id=?',(post_id,)).fetchone()
         if not old: abort(404)
         slug = unique_blog_slug(request.form.get('slug') or title, exclude_id=post_id)
         if image:
             con.execute('UPDATE blog_posts SET title=?,slug=?,excerpt=?,content=?,image=?,meta_description=?,is_published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',
                         (title,slug,excerpt,content,image,meta,published,post_id))
+            delete_upload(old['image'])
         else:
             con.execute('UPDATE blog_posts SET title=?,slug=?,excerpt=?,content=?,meta_description=?,is_published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',
                         (title,slug,excerpt,content,meta,published,post_id))
@@ -535,13 +613,19 @@ def upload_font():
 @app.post('/admin/settings')
 @admin_required
 def save_settings():
+    cleaned = H.clean_settings({k: v for k, v in request.form.items() if k != 'csrf_token'})
+    if 'accent_color' in request.form and re.fullmatch(r'#[0-9a-fA-F]{6}', request.form['accent_color'].strip()):
+        cleaned['accent_color'] = request.form['accent_color'].strip()
     with db() as con:
-        for key in DEFAULTS:
-            if key in request.form:
-                value = request.form.get(key, '').strip()[:2000]
-                con.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(key,value))
+        for key, value in cleaned.items():
+            con.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(key,str(value)))
     flash('تنظیمات سایت ذخیره شد.','success')
     return redirect(url_for('admin_dashboard')+'#settings')
+
+def delete_upload(url):
+    if url and url.startswith('/static/uploads/'):
+        try: (BASE / url.lstrip('/')).unlink(missing_ok=True)
+        except OSError: pass
 
 def save_upload(file):
     if not file or not file.filename: return ''
@@ -568,7 +652,9 @@ def add_project():
 @app.post('/admin/projects/<int:pid>/edit')
 @admin_required
 def edit_project(pid):
-    title=request.form.get('title','').strip(); category=request.form.get('category','').strip(); description=request.form.get('description','').strip()
+    title=request.form.get('title','').strip()[:200]; category=request.form.get('category','').strip(); description=request.form.get('description','').strip()[:3000]
+    if not title or not category:
+        flash('عنوان و دسته‌بندی پروژه الزامی است.','error'); return redirect(url_for('admin_dashboard')+'#projects')
     try: image=save_upload(request.files.get('image'))
     except ValueError as e:
         flash(str(e),'error'); return redirect(url_for('admin_dashboard')+'#projects')
@@ -577,6 +663,7 @@ def edit_project(pid):
         if not old: abort(404)
         if image:
             con.execute('UPDATE projects SET title=?,category=?,description=?,image=? WHERE id=?',(title,category,description,image,pid))
+            delete_upload(old['image'])
         else:
             con.execute('UPDATE projects SET title=?,category=?,description=? WHERE id=?',(title,category,description,pid))
     flash('نمونه‌کار ویرایش شد.','success'); return redirect(url_for('admin_dashboard')+'#projects')
@@ -643,4 +730,13 @@ def backup_database():
     return send_file(DB, mimetype='application/x-sqlite3', as_attachment=True, download_name='kazemi-backup.sqlite3')
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=False)
+    if len(sys.argv) > 1 and sys.argv[1] == 'reset-admin':
+        import getpass
+        user = input('نام کاربری مدیر [admin]: ').strip() or 'admin'
+        pw = getpass.getpass('رمز جدید (حداقل ۱۲ نویسه): ')
+        if len(pw) < 12: sys.exit('رمز کوتاه است.')
+        with db() as con:
+            con.execute('DELETE FROM admins WHERE username=?', (user,))
+            con.execute('INSERT INTO admins(username,password_hash) VALUES(?,?)', (user, generate_password_hash(pw)))
+        sys.exit('رمز مدیر تغییر کرد.')
+    app.run(host=os.environ.get('HOST', '127.0.0.1'), port=int(os.environ.get('PORT', 5000)), debug=False)

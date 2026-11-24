@@ -1,0 +1,6 @@
+<section class="services section" id="services">
+ <div class="section-head reveal"><div><div class="section-label">{{ d.label }}</div><h2>{{ d.title|rich }}</h2></div><p>{{ d.subtitle }}</p></div>
+ <div class="service-list">
+  {% for c in categories %}<a class="service reveal service-full-link" href="{{ url_for('service_detail', slug=c.slug) }}"><span class="number">{{ '%02d'|format(loop.index) }}</span><span class="service-symbol">▧</span><div><h3>{{ c.title }}</h3><p>{{ c.description }}</p></div></a>{% endfor %}
+ </div>
+</section>

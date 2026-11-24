@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}{{ post.title }} | {{ settings.company }}{% endblock %}
+{% block description %}{{ (post.meta_description or post.excerpt or post.title)|striptags|truncate(160) }}{% endblock %}
+{% block og_image %}{% if post.image %}<meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ post.image }}">{% endif %}{% endblock %}
+{% block main_class %}blog-article{% endblock %}
+{% block content %}<a class="blog-meta" href="/blog">بازگشت به مجله</a><p class="blog-meta">{{ post.created_at|fa_date }}</p><h1>{{ post.title }}</h1>{% if post.excerpt %}<p class="muted">{{ post.excerpt }}</p>{% endif %}{% if post.image %}<img class="cover" src="{{ post.image }}" alt="{{ post.title }}">{% endif %}<div class="blog-body">{{ post.content|safe }}</div><p style="margin-top:40px"><a class="button gold" href="/#contact">برای پروژه خود مشاوره بگیرید</a></p>{% endblock %}
