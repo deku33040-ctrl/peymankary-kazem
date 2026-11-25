@@ -5,6 +5,36 @@ if (nav && navToggle) {
   nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav.classList.remove('open')));
 }
 
+// Apply the same fade-in + upward slide entrance across the home,
+ // blog listing/article, and portfolio detail pages.
+const pageRevealSelectors = [
+  '.blog-page > .section-label',
+  '.blog-page > h1',
+  '.blog-page > .muted',
+  '.blog-article > .blog-meta',
+  '.blog-article > h1',
+  '.blog-article > .muted',
+  '.blog-article > .cover',
+  '.blog-article > .blog-body',
+  '.blog-article > p',
+  '.detail > .back',
+  '.detail > p',
+  '.detail > h1',
+  '.detail > img',
+  '.detail > .cta',
+  '.blog-list > .blog-card',
+  '.blog-grid > .blog-card',
+  '.work-grid > .work-card',
+  '.service-list > .service',
+  'main > section'
+];
+document.querySelectorAll(pageRevealSelectors.join(',')).forEach((el, index) => {
+  el.classList.add('reveal');
+  if (el.matches('.blog-card, .work-card, .service')) {
+    el.style.transitionDelay = `${Math.min(index % 6, 5) * 90}ms`;
+  }
+});
+
 const observer = new IntersectionObserver(entries => entries.forEach(e => {
   if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }
 }), { threshold: .12 });
