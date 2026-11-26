@@ -5,36 +5,6 @@ if (nav && navToggle) {
   nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav.classList.remove('open')));
 }
 
-// Apply the same fade-in + upward slide entrance across the home,
- // blog listing/article, and portfolio detail pages.
-const pageRevealSelectors = [
-  '.blog-page > .section-label',
-  '.blog-page > h1',
-  '.blog-page > .muted',
-  '.blog-article > .blog-meta',
-  '.blog-article > h1',
-  '.blog-article > .muted',
-  '.blog-article > .cover',
-  '.blog-article > .blog-body',
-  '.blog-article > p',
-  '.detail > .back',
-  '.detail > p',
-  '.detail > h1',
-  '.detail > img',
-  '.detail > .cta',
-  '.blog-list > .blog-card',
-  '.blog-grid > .blog-card',
-  '.work-grid > .work-card',
-  '.service-list > .service',
-  'main > section'
-];
-document.querySelectorAll(pageRevealSelectors.join(',')).forEach((el, index) => {
-  el.classList.add('reveal');
-  if (el.matches('.blog-card, .work-card, .service')) {
-    el.style.transitionDelay = `${Math.min(index % 6, 5) * 90}ms`;
-  }
-});
-
 const observer = new IntersectionObserver(entries => entries.forEach(e => {
   if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }
 }), { threshold: .12 });
@@ -69,3 +39,31 @@ if (about && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
   });
   about.addEventListener('pointerleave', () => { about.style.setProperty('--parallax-x', '0px'); about.style.setProperty('--parallax-y', '0px'); });
 }
+
+
+// Kazemi sliders: controls affect only portfolio and article carousels.
+document.querySelectorAll('[data-slider-prev], [data-slider-next]').forEach(button => {
+  const id = button.dataset.sliderPrev || button.dataset.sliderNext;
+  const slider = document.getElementById(id);
+  if (!slider) { button.hidden = true; return; }
+  const cards = () => Array.from(slider.children).filter(el => el.classList.contains('work-card') || el.classList.contains('blog-card'));
+  if (cards().length < 2) {
+    const controls = button.closest('.kazemi-slider-controls');
+    if (controls) controls.hidden = true;
+    return;
+  }
+  button.addEventListener('click', () => {
+    const items = cards();
+    const current = slider.getBoundingClientRect();
+    let nearest = 0, best = Infinity;
+    items.forEach((item, index) => {
+      const r = item.getBoundingClientRect();
+      const distance = Math.abs((r.left + r.right) / 2 - (current.left + current.right) / 2);
+      if (distance < best) { best = distance; nearest = index; }
+    });
+    const nextIndex = button.hasAttribute('data-slider-next')
+      ? Math.min(items.length - 1, nearest + 1)
+      : Math.max(0, nearest - 1);
+    items[nextIndex].scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest', inline: 'center'});
+  });
+});

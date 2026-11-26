@@ -74,25 +74,29 @@ a::after{ }
 @media(max-width:700px){.custom-block{padding:50px 6vw}.custom-image{padding:0 6vw}}
 
 
-/* Consistent fade + slide entrance for home, blog and portfolio pages */
-.js-enabled .reveal {
-  opacity: 0;
-  transform: translate3d(0, 30px, 0);
-  transition-property: opacity, transform;
-  transition-duration: .75s;
-  transition-timing-function: cubic-bezier(.22, 1, .36, 1);
-  will-change: opacity, transform;
+/* Kazemi: fade-in + horizontal sliders for portfolio and article cards only */
+.kazemi-slider-controls{display:flex;justify-content:flex-start;gap:9px;margin:-22px 0 20px}
+.kazemi-slider-controls button{width:38px;height:38px;border:1px solid #9a845e;background:transparent;color:var(--gold);font:26px/1 Tahoma,Arial,sans-serif;cursor:pointer;transition:background .25s ease,color .25s ease,transform .25s ease}
+.kazemi-slider-controls button:hover{background:var(--gold);color:#171a15;transform:translateY(-2px)}
+.kazemi-slider-controls button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.work-grid.kazemi-slider,.blog-grid.kazemi-slider,.blog-list.kazemi-slider{
+  display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:22px;
+  scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-inline:contain;
+  scrollbar-width:thin;scrollbar-color:var(--gold) transparent;padding:4px 2px 16px;
 }
-.js-enabled .reveal.visible {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
+.work-grid.kazemi-slider .work-card{flex:0 0 min(340px,82vw);min-width:0;scroll-snap-align:center}
+.work-grid.kazemi-slider .work-card.work-feature{flex-basis:min(390px,86vw)}
+.blog-grid.kazemi-slider .blog-card,.blog-list.kazemi-slider .blog-card{
+  flex:0 0 min(340px,82vw);min-width:0;scroll-snap-align:center
 }
-@media (prefers-reduced-motion: reduce) {
-  .js-enabled .reveal,
-  .js-enabled .reveal.visible {
-    opacity: 1;
-    transform: none;
-    transition: none;
-    will-change: auto;
-  }
+.js-enabled .kazemi-slider .reveal{opacity:0;transform:translateY(22px);transition:opacity .75s ease,transform .75s ease}
+.js-enabled .kazemi-slider .reveal.visible{opacity:1;transform:translateY(0)}
+@media(max-width:650px){
+  .kazemi-slider-controls{margin:-12px 0 16px}
+  .work-grid.kazemi-slider .work-card,.work-grid.kazemi-slider .work-card.work-feature,
+  .blog-grid.kazemi-slider .blog-card,.blog-list.kazemi-slider .blog-card{flex-basis:min(82vw,340px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .kazemi-slider-controls button,.work-grid.kazemi-slider,.blog-grid.kazemi-slider,.blog-list.kazemi-slider{scroll-behavior:auto;transition:none}
+  .js-enabled .kazemi-slider .reveal{opacity:1;transform:none;transition:none}
 }
