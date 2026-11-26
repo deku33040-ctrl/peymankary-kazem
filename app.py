@@ -1,4 +1,4 @@
-import os, sys, sqlite3, secrets, io, csv, time, json, re
+import os, sys, sqlite3, secrets, io, csv, time, json, re, urllib.request, urllib.error, html
 from datetime import timedelta
 from pathlib import Path
 from functools import wraps
@@ -125,30 +125,13 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )''')
+        con.execute('''CREATE TABLE IF NOT EXISTS ai_generated_posts (
+            post_id INTEGER PRIMARY KEY,
+            topic TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(post_id) REFERENCES blog_posts(id) ON DELETE CASCADE
+        )''')
         con.execute('''CREATE TABLE IF NOT EXISTS blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT NOT NULL, data TEXT NOT NULL DEFAULT '{}', sort_order INTEGER NOT NULL DEFAULT 0, is_visible INTEGER NOT NULL DEFAULT 1)''')
-        # Publish an initial editorial library once; existing posts are never overwritten.
-        seed_articles = [('راهنمای جامع اجرای سنگ لاشه', 'rahnamaye-ejra-sang-lashe', 'مراحل انتخاب سنگ، زیرسازی، چیدمان، نصب و بندکشی', 'دیوار باغ، نمای ویلا و محوطه', 'هماهنگی اندازه قطعات و تکیه\u200cگاه پایدار', 'پیش از اجرا نمونه چیدمان بسازید و روش مهار را مشخص کنید'), ('سنگ مالون چیست و چه تفاوتی با سنگ لاشه دارد؟', 'fargh-sang-malon-lashe', 'تفاوت فرم طبیعی، میزان تراش و کاربرد سنگ مالون و لاشه', 'دیوارچینی، نما و عناصر محوطه', 'نام تجاری به\u200cتنهایی مشخصات فنی را روشن نمی\u200cکند', 'در سفارش ضخامت، میزان تراش و نمونه محموله را ثبت کنید'), ('فروش سنگ لاشه؛ نکات مهم پیش از خرید', 'kharid-foroosh-sang-lashe', 'ارزیابی کیفیت محموله، هزینه حمل، شکستگی و مقدار سفارش', 'تأمین سنگ برای پروژه\u200cهای ساختمانی و محوطه', 'مقایسه صرف قیمت هر تن می\u200cتواند گمراه\u200cکننده باشد', 'هزینه سنگ قابل استفاده، بارگیری و حمل را یکجا مقایسه کنید'), ('سنگ ورقه\u200cای برای کف حیاط و محوطه', 'sang-varaghei-kaf-hayat', 'ویژگی\u200cهای سنگ تخت، ضخامت، زبری و روش نصب', 'حیاط، مسیر باغ و محوطه ویلا', 'لغزندگی، اختلاف ارتفاع و نشست زیرکار', 'نمونه را در حالت خیس ببینید و شیب تخلیه آب را اجرا کنید'), ('اجرای نمای ساختمان با سنگ لاشه', 'ejraye-namay-sakhteman-sang-lashe', 'طراحی نما، وزن سنگ، زیرسازی و مهار ایمن', 'نمای بیرونی ساختمان و ویلا', 'وزن زیاد و خطر جداشدن سنگ از نما', 'جزئیات مهار و ظرفیت بستر باید توسط متخصص بررسی شود'), ('محوطه\u200cسازی باغ و ویلا با سنگ طبیعی', 'mohavate-sazi-bagh-ba-sang', 'ترکیب مسیر سنگی، دیوار، لبه باغچه و آبنما', 'باغ، ویلا و فضای سبز', 'نبود طرح یکپارچه و جمع\u200cشدن آب', 'مسیر حرکت، زهکشی و هماهنگی رنگ\u200cها را از ابتدا طراحی کنید'), ('سنگ کوهی، مالون و ورقه\u200cای؛ کدام را بخریم؟', 'moghayese-sang-kohi-malon-varaghei', 'مقایسه ویژگی\u200cهای ظاهری و کاربردی انواع سنگ طبیعی', 'کف، دیوار و نما', 'تفاوت کیفیت محصولات با نام مشابه', 'نمونه واقعی، ضخامت و کاربرد نهایی را مبنای انتخاب قرار دهید'), ('اجرای دیوار باغ با سنگ مالون', 'divar-bagh-sang-malon', 'نکات پی\u200cسازی، رج\u200cبندی، درپوش و زهکشی', 'دیوار محوطه و دیوار باغ', 'اشتباه گرفتن دیوار تزئینی با دیوار حائل', 'در دیوار نگهدارنده خاک، طراحی سازه\u200cای و زهکشی ضروری است'), ('سنگ\u200cکاری آبنما و آبشار سنگی', 'sang-kari-abnama-abshar', 'انتخاب سنگ، آب\u200cبندی، پمپ و مسیر گردش آب', 'آبنما و آبشار محوطه', 'نشتی، رسوب و دسترسی دشوار به تجهیزات', 'آب\u200cبندی را مستقل از سنگ\u200cکاری آزمایش کنید'), ('سنگ قلوه\u200cای و رودخانه\u200cای در طراحی محوطه', 'sang-gholvei-rudkhane-mohavate', 'کاربرد قلوه\u200cسنگ در نوارهای تزئینی و اطراف آبنما', 'محوطه، باغچه و حاشیه آبنما', 'حرکت سنگ\u200cهای گرد در مسیرهای پرتردد', 'برای مسیر عبور، بستر و تثبیت متناسب طراحی کنید'), ('کف\u200cسازی سنگی حیاط؛ شیب\u200cبندی و زهکشی', 'kaf-sazi-sangi-hayat', 'زیرسازی، تراکم، شیب و جلوگیری از لق\u200cشدن', 'حیاط، پارکینگ و مسیر پیاده', 'تجمع آب و نشست قطعات', 'بارگذاری و شیب تخلیه را پیش از نصب تعیین کنید'), ('قیمت اجرای سنگ لاشه چگونه محاسبه می\u200cشود؟', 'ghimat-ejra-sang-lashe', 'عوامل مؤثر بر مصالح، حمل، زیرسازی و دستمزد', 'برآورد پروژه سنگ\u200cکاری', 'اعلام قیمت بدون اندازه\u200cگیری و شناخت زیرکار', 'شرح خدمات و واحد اندازه\u200cگیری را در پیش\u200cفاکتور بنویسید'), ('نمای ویلایی با سنگ طبیعی؛ ترکیب با چوب و آجر', 'namaye-vilayi-sang-tabiyee', 'ایده\u200cهای ترکیب سنگ با چوب، آجر و بتن', 'نمای ویلا و ورودی ساختمان', 'ناهماهنگی رنگ و اتصال نامناسب متریال\u200cها', 'پیش از اجرا یک نمونه در مقیاس واقعی بسازید'), ('اجرای پله و مسیر سنگی در باغ', 'pelle-masiri-sangi-bagh', 'ابعاد پله، پاگرد، اصطکاک و تخلیه آب', 'مسیرهای شیب\u200cدار و باغ', 'پله\u200cهای ناهم\u200cاندازه و سطح لغزنده', 'ارتفاع و عمق پله\u200cها را یکنواخت و ایمن اجرا کنید'), ('بندکشی سنگ لاشه؛ رنگ ملات و اجرای تمیز', 'bandkeshi-sang-lashe', 'انتخاب رنگ بند، آماده\u200cسازی درز و پاک\u200cکردن ملات', 'نما و دیوار سنگی', 'ترک، حفره و لکه ملات روی سنگ', 'ابتدا نمونه بندکشی را روی چند قطعه آزمایش کنید'), ('نگهداری و شست\u200cوشوی نمای سنگی', 'negahdari-shosteshooye-namay-sangi', 'تمیزکاری، شوره\u200cزدگی و پیشگیری از نفوذ رطوبت', 'نمای سنگی و دیوار محوطه', 'استفاده از شوینده اسیدی یا پاک\u200cکردن بدون رفع علت', 'منبع رطوبت را پیدا کنید و شوینده را ابتدا روی نقطه پنهان بیازمایید'), ('انتخاب سنگ برای آب\u200cوهوای سرد و پرباران', 'entekhab-sang-sarma-barani', 'جذب آب، یخ\u200cزدگی و جزئیات تخلیه آب', 'فضاهای بیرونی در اقلیم سرد یا مرطوب', 'آب محبوس در بندها و پشت سنگ', 'مشخصات فنی و سازگاری ملات و سنگ را بررسی کنید'), ('سنگ کوبیک در محوطه\u200cسازی و کف\u200cسازی', 'sang-koobik-kaf-sazi', 'الگوی چیدمان، ضخامت و مهار قطعات', 'مسیر، حیاط و فضاهای پرتردد', 'حرکت قطعات و نشست بستر', 'زیرسازی و مهار لبه\u200cها را بر اساس بار طراحی کنید'), ('چطور مقدار سنگ موردنیاز پروژه را برآورد کنیم؟', 'baravord-meghdar-sang-proje', 'اندازه\u200cگیری سطوح، محاسبه پرت و واحد خرید', 'خرید سنگ برای پروژه', 'اشتباه گرفتن تن، مترمربع و مترمکعب', 'هر سطح و نوع سنگ را جداگانه متره کنید'), ('اشتباهات رایج در اجرای سنگ لاشه', 'eshtebahat-ejra-sang-lashe', 'خطاهای انتخاب، زیرسازی، نصب و کنترل کیفیت', 'تمام پروژه\u200cهای سنگ لاشه', 'پوشاندن ایرادهای زیرکار با سنگ\u200cکاری نهایی', 'مراحل پنهان را پیش از پوشانده\u200cشدن کنترل و مستندسازی کنید')]
-        for title, slug, focus, usage, risk, advice in seed_articles:
-            if con.execute('SELECT 1 FROM blog_posts WHERE slug=?', (slug,)).fetchone():
-                continue
-            excerpt = f'{focus}؛ نکات انتخاب و اجرای درست برای {usage}.'
-            content = f'''
-<h2>مقدمه</h2>
-<p>{title} از موضوعات مهم در انتخاب و اجرای سنگ طبیعی است. نتیجه ماندگار تنها به ظاهر سنگ وابسته نیست؛ شناخت محل مصرف، کیفیت مصالح، آماده‌سازی بستر و اجرای درست در کنار هم اهمیت دارند. در این راهنما نکته‌هایی را مرور می‌کنیم که پیش از خرید یا شروع کار باید در نظر گرفته شوند تا تصمیم‌گیری بر اساس نیاز واقعی پروژه باشد.</p>
-<h2>انتخاب مصالح و بررسی شرایط پروژه</h2>
-<p>{focus}. این موضوع برای کاربردهایی مانند {usage} اهمیت ویژه‌ای دارد. پیش از سفارش، نمونه واقعی سنگ را از نظر رنگ، بافت، ضخامت، سلامت لبه‌ها و یکنواختی بررسی کنید. شرایط اقلیمی، میزان رفت‌وآمد، تماس با آب و بار وارد بر سطح نیز باید در انتخاب لحاظ شود. نام تجاری یا عکس اینترنتی به‌تنهایی مشخصات فنی یک محموله را اثبات نمی‌کند؛ از فروشنده اطلاعات دقیق همان محصول را بخواهید.</p>
-<h2>نکات اجرایی و خطاهای قابل پیشگیری</h2>
-<p>در زمان اجرا، بستر باید متناسب با نوع کار آماده و پایدار شود. تراز، شاقول، شیب‌بندی و مسیر خروج آب را پیش از نصب مشخص کنید. قطعات باید به شکلی چیده شوند که تکیه‌گاه کافی داشته باشند و بندها بدون حفره و با نظم قابل قبول تکمیل شوند. یکی از ریسک‌های مهم این کار، {risk} است؛ بنابراین مراحل زیرکار و جزئیات اتصال را پیش از پوشانده‌شدن کنترل کنید. در نماهای مرتفع، دیوارهای حائل و سطوحی که بار قابل توجه دارند، بررسی فنی و اجرای مهار متناسب ضروری است.</p>
-<h2>کنترل کیفیت و نگهداری</h2>
-<p>{advice}. در پایان کار، سطح از نظر لق‌شدن، اختلاف ارتفاع، ترک، بندهای ناقص و مسیر تخلیه آب بررسی شود. برای نظافت نیز از مواد شیمیایی ناشناخته یا ابزار خشن استفاده نکنید؛ روش تمیزکاری باید با جنس و پرداخت سنگ سازگار باشد. ثبت عکس از مراحل اجرا و نگهداری مشخصات سنگ مصرفی، در تعمیرات آینده کمک‌کننده است.</p>
-<h2>پیش از سفارش چه اطلاعاتی آماده کنیم؟</h2>
-<p>ابعاد تقریبی، عکس واضح از محل، نوع کاربری، شهر و شرایط دسترسی کارگاه را آماده کنید. سپس درباره نوع سنگ، مقدار و واحد فروش، هزینه حمل، زیرسازی، روش نصب، بندکشی، زمان‌بندی و موارد خارج از تعهد سؤال کنید. برآورد دقیق قیمت بدون اندازه‌گیری و شناخت شرایط محل ممکن نیست؛ قیمت روز را هنگام سفارش از فروشنده و مجری استعلام کنید.</p>
-<p><strong>پیمانکاری کاظمی</strong> برای بررسی نیاز پروژه و انتخاب روش مناسب سنگ‌کاری، آماده دریافت توضیحات و تصاویر محل اجراست.</p>
-'''
-            meta = f'{title}؛ راهنمای انتخاب مصالح، نکات اجرا و کنترل کیفیت برای {usage}.'
-            con.execute('INSERT INTO blog_posts(title,slug,excerpt,content,image,meta_description,is_published) VALUES(?,?,?,?,?,?,1)',
-                        (title, slug, excerpt, content, '', meta[:160]))
-
         con.execute('''CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT, service TEXT, message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         con.execute('''CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL)''')
         for k,v in DEFAULTS.items():
@@ -368,7 +351,11 @@ def admin_dashboard():
         categories = con.execute('SELECT * FROM service_categories ORDER BY id').fetchall()
         pages = con.execute('SELECT * FROM custom_pages ORDER BY id DESC').fetchall()
         blog_posts = con.execute('SELECT * FROM blog_posts ORDER BY created_at DESC,id DESC').fetchall()
-    return render_template('admin_dashboard.html', settings=get_settings(), projects=projects, messages=messages, total_projects=total_projects, total_messages=total_messages, latest_message=latest_message, categories=categories, pages=pages, blog_posts=blog_posts)
+    ai_enabled = bool(os.environ.get('OPENAI_API_KEY', '').strip())
+    with db() as con:
+        ai_draft_count = con.execute('''SELECT COUNT(*) FROM ai_generated_posts a
+            JOIN blog_posts b ON b.id=a.post_id WHERE b.is_published=0''').fetchone()[0]
+    return render_template('admin_dashboard.html', settings=get_settings(), projects=projects, messages=messages, total_projects=total_projects, total_messages=total_messages, latest_message=latest_message, categories=categories, pages=pages, blog_posts=blog_posts, ai_enabled=ai_enabled, ai_draft_count=ai_draft_count)
 
 @app.get('/admin/builder')
 @admin_required
@@ -575,6 +562,157 @@ def delete_blog_post(post_id):
     return redirect(url_for('admin_dashboard')+'#blog')
 
 
+
+def _openai_response_text(payload):
+    if isinstance(payload.get('output_text'), str) and payload['output_text'].strip():
+        return payload['output_text'].strip()
+    chunks = []
+    for item in payload.get('output', []):
+        if item.get('type') != 'message':
+            continue
+        for part in item.get('content', []):
+            if part.get('type') in ('output_text', 'text') and part.get('text'):
+                chunks.append(part['text'])
+    return "\n".join(chunks).strip()
+
+
+def _ai_plaintext_html(value):
+    paragraphs = [p.strip() for p in re.split(r'\n\s*\n', str(value or '').strip()) if p.strip()]
+    return ''.join('<p>' + html.escape(p).replace('\n', '<br>') + '</p>' for p in paragraphs)
+
+
+def generate_ai_posts(count=1, topic='همه موضوعات', publish=False):
+    api_key = os.environ.get('OPENAI_API_KEY', '').strip()
+    if not api_key:
+        raise RuntimeError('کلید OPENAI_API_KEY در Secrets سرور تنظیم نشده است.')
+    try:
+        count = max(1, min(50, int(count)))
+    except (TypeError, ValueError):
+        count = 1
+
+    company = get_settings().get('company') or 'سنگ لاشه کاظمی'
+    phone = get_settings().get('phone') or '09965470626'
+    topic = str(topic or 'همه موضوعات').strip()[:120]
+    model = os.environ.get('OPENAI_MODEL', 'gpt-4.1-mini').strip() or 'gpt-4.1-mini'
+
+    system_text = (
+        'تو نویسنده و ویراستار فارسی‌زبان متخصص محتوای کاربردی درباره سنگ طبیعی، سنگ لاشه، '
+        'فروش مصالح و اجرای سنگ‌کاری هستی. فقط خروجی JSON معتبر بده؛ هیچ متن اضافه یا Markdown fence ننویس. '
+        'اطلاعات تجاری ساختگی ممنوع است: قیمت قطعی، موجودی، آدرس، شهر، سابقه، تعداد پروژه، تضمین، '
+        'تجربه مشتری و پروژه انجام‌شده را جعل نکن. هرجا قیمت یا موجودی مطرح است، بگو برای استعلام تماس بگیرند. '
+        'مطالب واقع‌گرایانه، مفید، غیرتکراری و به زبان فارسی روان باشند. از ادعاهای مطلق و keyword stuffing دوری کن.'
+    )
+    user_text = f'''برای کسب‌وکار «{company}» با شماره تماس «{phone}» دقیقاً {count} محتوای تازه تولید کن.
+موضوع محوری: {topic}
+موضوعات مجاز و مرتبط: معرفی و فروش سنگ لاشه، کاربردها، تفاوت انواع سنگ، نکات انتخاب و خرید،
+حمل و نگهداری، آماده‌سازی زیرکار، اصول کلی اجرای سنگ لاشه، دیوارچینی و محوطه‌سازی سنگی،
+پرسش‌های متداول مشتریان و دعوت محترمانه به تماس.
+ترکیب محتواها را متنوع کن: مقاله آموزشی نسبتاً کامل، پست کوتاه شبکه اجتماعی، معرفی خدمت و محتوای پرسش‌وپاسخ.
+هر محتوا باید مستقل و واقعاً متفاوت باشد. از تکرار عنوان و متن پرهیز کن.
+هر مورد باید این فیلدها را داشته باشد:
+- title: عنوان فارسی جذاب و دقیق (حداکثر ۱۲۰ نویسه)
+- excerpt: خلاصه ۱ تا ۲ جمله‌ای
+- content: متن فارسی مفید، برای مقاله ۳ تا ۵ پاراگراف و برای پست کوتاه حداقل ۱ پاراگراف؛ در انتها دعوت به تماس و شماره {phone} را طبیعی بیاور.
+- meta_description: توضیح سئوی طبیعی حداکثر ۱۵۰ نویسه
+برای شماره تماس از همین شماره استفاده کن و هیچ شماره دیگری نساز.
+خروجی دقیقاً به این شکل باشد:
+{{"items":[{{"title":"...","excerpt":"...","content":"...","meta_description":"..."}}]}}
+تعداد items باید دقیقاً {count} باشد.'''
+    body = {
+        'model': model,
+        'input': [
+            {'role': 'system', 'content': [{'type': 'input_text', 'text': system_text}]},
+            {'role': 'user', 'content': [{'type': 'input_text', 'text': user_text}]}
+        ],
+        'max_output_tokens': min(20000, max(2500, count * 360))
+    }
+    req = urllib.request.Request(
+        'https://api.openai.com/v1/responses',
+        data=json.dumps(body, ensure_ascii=False).encode('utf-8'),
+        headers={'Authorization': 'Bearer ' + api_key, 'Content-Type': 'application/json'},
+        method='POST'
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=240) as response:
+            result = json.loads(response.read().decode('utf-8'))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode('utf-8', errors='replace')[:1200]
+        raise RuntimeError('خطا از سرویس OpenAI: ' + detail)
+    except urllib.error.URLError as exc:
+        raise RuntimeError('ارتباط با سرویس OpenAI برقرار نشد: ' + str(exc.reason))
+
+    text_out = _openai_response_text(result)
+    if text_out.startswith('```'):
+        text_out = re.sub(r'^```(?:json)?\s*|\s*```$', '', text_out, flags=re.I)
+    try:
+        parsed = json.loads(text_out)
+        items = parsed.get('items', []) if isinstance(parsed, dict) else parsed
+    except (ValueError, TypeError):
+        match = re.search(r'\{.*\}', text_out, flags=re.S)
+        if not match:
+            raise RuntimeError('پاسخ هوش مصنوعی قابل خواندن نبود؛ دوباره تلاش کن.')
+        try:
+            items = json.loads(match.group(0)).get('items', [])
+        except (ValueError, AttributeError):
+            raise RuntimeError('ساختار پاسخ هوش مصنوعی معتبر نبود.')
+
+    if not isinstance(items, list) or not items:
+        raise RuntimeError('هوش مصنوعی محتوایی برنگرداند.')
+    created, seen_titles = [], set()
+    for item in items[:count]:
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get('title', '')).strip()[:180]
+        excerpt = str(item.get('excerpt', '')).strip()[:500]
+        content = _ai_plaintext_html(item.get('content', ''))[:50000]
+        meta = str(item.get('meta_description', '')).strip()[:300]
+        if not title or not content or title in seen_titles:
+            continue
+        seen_titles.add(title)
+        slug = unique_blog_slug(title)
+        with db() as con:
+            cur = con.execute(
+                'INSERT INTO blog_posts(title,slug,excerpt,content,meta_description,is_published) VALUES(?,?,?,?,?,?)',
+                (title, slug, excerpt, content, meta, 1 if publish else 0)
+            )
+            post_id = cur.lastrowid
+            con.execute('INSERT INTO ai_generated_posts(post_id,topic) VALUES(?,?)', (post_id, topic))
+        created.append({'id': post_id, 'title': title, 'published': bool(publish)})
+    if not created:
+        raise RuntimeError('هیچ محتوای قابل ذخیره‌ای در پاسخ تولیدشده وجود نداشت.')
+    return created
+
+
+@app.post('/admin/ai/generate')
+@admin_required
+def admin_ai_generate():
+    data = request.get_json(silent=True) or {}
+    try:
+        created = generate_ai_posts(count=data.get('count', 1),
+                                    topic=data.get('topic', 'همه موضوعات'),
+                                    publish=False)
+        return jsonify({'ok': True, 'created': created, 'count': len(created),
+                        'message': f'{len(created)} محتوا به‌صورت پیش‌نویس ذخیره شد.'})
+    except RuntimeError as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 503
+    except Exception:
+        app.logger.exception('AI content generation failed')
+        return jsonify({'ok': False, 'error': 'خطای غیرمنتظره هنگام تولید محتوا رخ داد.'}), 500
+
+
+@app.post('/admin/ai/publish')
+@admin_required
+def admin_ai_publish():
+    with db() as con:
+        rows = con.execute('''SELECT b.id FROM ai_generated_posts a
+            JOIN blog_posts b ON b.id=a.post_id WHERE b.is_published=0 ORDER BY b.id''').fetchall()
+        if rows:
+            con.executemany('UPDATE blog_posts SET is_published=1,updated_at=CURRENT_TIMESTAMP WHERE id=?',
+                            [(r['id'],) for r in rows])
+    flash(f'{len(rows)} محتوای هوش مصنوعی منتشر شد.' if rows else 'پیش‌نویس هوش مصنوعی برای انتشار وجود ندارد.',
+          'success' if rows else 'error')
+    return redirect(url_for('admin_dashboard') + '#ai-content')
+
 @app.post('/admin/site-image/<field>')
 @admin_required
 def upload_site_image(field):
@@ -609,18 +747,6 @@ def upload_font():
         con.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',('custom_font','/static/fonts/'+name))
     flash('فونت بارگذاری و برای سایت انتخاب شد.','success')
     return redirect(url_for('admin_dashboard')+'#settings')
-
-@app.post('/admin/contact')
-@admin_required
-def save_contact():
-    f = request.form
-    cleaned = H.clean_settings({k: f.get(k, '') for k in ('phone', 'whatsapp', 'telegram', 'country_code')})
-    cleaned['float_enabled'] = '1' if f.get('float_enabled') else '0'
-    with db() as con:
-        for key, value in cleaned.items():
-            con.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(key,str(value)))
-    flash('شماره‌ها و دکمه‌های تماس ذخیره شد.','success')
-    return redirect(url_for('admin_dashboard')+'#contact-buttons')
 
 @app.post('/admin/settings')
 @admin_required
