@@ -93,88 +93,36 @@ a::after{ }
 }
 
 
-/* Rebuilt compact floating contact buttons: fixed overlay, no page-flow space */
-#kazemi-contact-dock{
-  position:fixed;
-  right:18px;
-  bottom:18px;
-  z-index:9999;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:9px;
-  width:max-content;
-  height:auto;
-  margin:0;
-  padding:0;
-  pointer-events:none;
+/* Rebuilt floating contact buttons: viewport overlay only, never adds page spacing */
+.kazemi-contact-dock{
+  position:fixed!important;right:14px!important;bottom:16px!important;left:auto!important;top:auto!important;
+  z-index:99999!important;display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:flex-end!important;gap:8px!important;
+  width:46px!important;height:auto!important;min-height:0!important;max-height:none!important;
+  margin:0!important;padding:0!important;border:0!important;background:transparent!important;
+  opacity:1!important;visibility:visible!important;transform:none!important;
+  overflow:visible!important;pointer-events:none!important;
 }
-#kazemi-contact-dock .kc-contact-link{
-  position:relative;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  width:50px;
-  height:50px;
-  min-width:50px;
-  min-height:50px;
-  margin:0;
-  padding:0;
-  border:1px solid #ffffff55;
-  border-radius:50%;
-  color:#fff;
-  text-decoration:none;
-  box-shadow:0 4px 14px #0006;
-  pointer-events:auto;
-  transition:transform .2s ease,filter .2s ease;
+.kazemi-contact-dock .kazemi-contact-button{
+  display:flex!important;flex:0 0 46px!important;align-items:center!important;justify-content:center!important;
+  width:46px!important;height:46px!important;min-width:46px!important;min-height:46px!important;
+  max-width:46px!important;max-height:46px!important;margin:0!important;padding:0!important;
+  border:1px solid #ffffff55!important;border-radius:50%!important;color:#fff!important;
+  text-decoration:none!important;line-height:1!important;box-shadow:0 3px 12px #0007!important;
+  overflow:hidden!important;pointer-events:auto!important;box-sizing:border-box!important;
 }
-#kazemi-contact-dock .kc-contact-link:hover{
-  transform:translateY(-3px);
-  filter:brightness(1.08);
+.kazemi-contact-dock .kazemi-contact-button svg{
+  display:block!important;position:static!important;width:22px!important;height:22px!important;
+  min-width:22px!important;min-height:22px!important;max-width:22px!important;max-height:22px!important;
+  margin:0!important;padding:0!important;transform:none!important;fill:#fff!important;flex:none!important;
 }
-#kazemi-contact-dock .kc-contact-link:focus-visible{
-  outline:2px solid var(--gold,#c7a46b);
-  outline-offset:3px;
-}
-#kazemi-contact-dock .kc-contact-link svg{
-  display:block;
-  width:24px;
-  height:24px;
-  flex:0 0 24px;
-  fill:currentColor;
-}
-#kazemi-contact-dock .kc-contact-label{
-  position:absolute;
-  right:59px;
-  top:50%;
-  transform:translateY(-50%);
-  white-space:nowrap;
-  padding:5px 9px;
-  border:1px solid #ffffff30;
-  border-radius:6px;
-  background:#111512;
-  color:#fff;
-  font:12px Tahoma,Arial,sans-serif;
-  opacity:0;
-  visibility:hidden;
-  pointer-events:none;
-  transition:opacity .18s ease,visibility .18s ease;
-}
-#kazemi-contact-dock .kc-contact-link:hover .kc-contact-label,
-#kazemi-contact-dock .kc-contact-link:focus-visible .kc-contact-label{
-  opacity:1;
-  visibility:visible;
-}
-#kazemi-contact-dock .kc-whatsapp{background:#20b968}
-#kazemi-contact-dock .kc-telegram{background:#229ed9}
-#kazemi-contact-dock .kc-phone{background:#b58b4d}
+.kazemi-contact-dock .kazemi-whatsapp{background:#20b968!important}
+.kazemi-contact-dock .kazemi-telegram{background:#229ed9!important}
+.kazemi-contact-dock .kazemi-phone{background:#b58b4d!important}
+.kazemi-contact-dock .kazemi-contact-button:hover{filter:brightness(1.08)!important}
+.kazemi-contact-dock .kazemi-contact-button:focus-visible{outline:2px solid var(--gold)!important;outline-offset:3px!important}
 @media(max-width:600px){
-  #kazemi-contact-dock{right:12px;bottom:14px;gap:8px}
-  #kazemi-contact-dock .kc-contact-link{width:46px;height:46px;min-width:46px;min-height:46px}
-  #kazemi-contact-dock .kc-contact-link svg{width:22px;height:22px;flex-basis:22px}
-  #kazemi-contact-dock .kc-contact-label{right:54px}
-}
-@media(prefers-reduced-motion:reduce){
-  #kazemi-contact-dock .kc-contact-link,
-  #kazemi-contact-dock .kc-contact-label{transition:none}
+ .kazemi-contact-dock{right:10px!important;bottom:12px!important;gap:7px!important;width:42px!important}
+ .kazemi-contact-dock .kazemi-contact-button{flex-basis:42px!important;width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;max-width:42px!important;max-height:42px!important}
+ .kazemi-contact-dock .kazemi-contact-button svg{width:20px!important;height:20px!important;min-width:20px!important;min-height:20px!important;max-width:20px!important;max-height:20px!important}
 }
