@@ -67,3 +67,60 @@ document.querySelectorAll('[data-slider-prev], [data-slider-next]').forEach(butt
     items[nextIndex].scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest', inline: 'center'});
   });
 });
+
+
+// Rebuild the floating WhatsApp / Telegram / phone controls in one isolated dock.
+(() => {
+  const mountContactDock = () => {
+    // Remove any old implementation so controls can never be duplicated.
+    document.querySelectorAll('.floating-contact, #floatingContact, #kazemi-contact-dock')
+      .forEach(node => node.remove());
+
+    const dock = document.createElement('div');
+    dock.id = 'kazemi-contact-dock';
+    dock.setAttribute('aria-label', 'راه‌های ارتباط با سنگ لاشه کاظمی');
+
+    const phone = '+989965470626';
+    const items = [
+      {
+        className: 'kc-whatsapp',
+        label: 'واتساپ',
+        href: 'https://wa.me/989965470626',
+        svg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 3.5A11.8 11.8 0 0 0 2 17.7L.5 23.5l6-1.5A11.8 11.8 0 0 0 20.5 3.5ZM12 21a9.1 9.1 0 0 1-4.6-1.2l-.3-.2-3.5.9.9-3.4-.2-.4A9.2 9.2 0 1 1 12 21Zm5-6.9c-.3-.2-1.7-.9-2-.9s-.5-.2-.7.2-.8.9-1 .0.4-.3.6-.5.3-.3.4-.5.1-.4 0-.6c-.1-.2-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4s-1 1-1 2.4 1 2.7 1.2 2.9c.1.2 2 3.1 4.9 4.2.7.3 1.2.4 1.6.5.7.2 1.3.1 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.1.1-1.2-.1-.1-.3-.2-.6-.4Z"/></svg>'
+      },
+      {
+        className: 'kc-telegram',
+        label: 'تلگرام',
+        href: 'https://t.me/+989965470626',
+        svg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.8 3.2 18.5 20c-.2 1.2-.9 1.5-1.9.9l-5.2-3.8-2.5 2.4c-.3.3-.5.5-1 .5l.4-5.3 9.7-8.8c.4-.4-.1-.6-.6-.2L5.4 13.3.3 11.7c-1.1-.3-1.1-1.1.2-1.6L20.4 2.5c.9-.3 1.7.2 1.4.7Z"/></svg>'
+      },
+      {
+        className: 'kc-phone',
+        label: 'تماس تلفنی',
+        href: 'tel:' + phone,
+        svg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2 11.2 11.2 0 0 0 3.5.6 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17.9 17.9 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.2 11.2 0 0 0 .6 3.5 1 1 0 0 1-.2 1Z"/></svg>'
+      }
+    ];
+
+    items.forEach(item => {
+      const link = document.createElement('a');
+      link.className = 'kc-contact-link ' + item.className;
+      link.href = item.href;
+      link.setAttribute('aria-label', item.label);
+      if (item.className !== 'kc-phone') {
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+      }
+      link.innerHTML = item.svg + '<span class="kc-contact-label">' + item.label + '</span>';
+      dock.appendChild(link);
+    });
+
+    if (dock.childElementCount) document.body.appendChild(dock);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountContactDock, { once: true });
+  } else {
+    mountContactDock();
+  }
+})();
